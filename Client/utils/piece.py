@@ -20,13 +20,52 @@ class Piece:
         self._init_subpieces()
 
 
-    def _init_subpieces(self):
+    def _init_subpieces(self): # see this
         for i in range(len(self.subpieces)-1):
             self.subpieces.append(SubPiece(subpiece_size=SUBPIECE_SIZE))
 
         self.subpieces.append(SubPiece(subpiece_size=self.piece_size%SUBPIECE_SIZE))        
 
 
+    def get_empty_subpiece(self):
+        if self.is_full:
+            return None
+        
+        for index,subpiece in enumerate(self.subpieces):
+            if subpiece.state == State.FREE:
+                self.subpieces[index].state = State.PENDING
+                self.subpieces[index].last_seen = time.time()
+                return self.piece_index, index*SUBPIECE_SIZE, subpiece.subpiece_size
+            
+        return None
 
+    def all_subpieces_full(self):
+        for subpiece in self.subpieces:
+            if subpiece.state == State.FREE or subpiece.state == State.PENDING:
+                return False
+        return True
+
+    def get_subpiece(self, subpiece_offset, subpiece_length):
+        return self.raw_data[subpiece_offset:subpiece_length]
+
+    def set_subpiece(self, offset, data):
+        index = int(offset/SUBPIECE_SIZE)
+
+        if not self.is_full and not self.subpieces[index].state == State.FULL:
+            self.subpieces[index].data = data
+            self.subpieces[index].state = State.FULL        
+
+    def update_subpiece_status(self): # if block is pending for too long: set it free
+        for i, subpiece in enumerate(self.subpieces):
+            if subpiece.state == State.PENDING and (time.time() - subpiece.last_seen)>5:
+                self.subpieces[i] = SubPiece()
+
+    def _merge_subpieces(self):
+        data = b''
+
+        for subpiece in self.subpieces:
+            data += subpiece.data
+
+        return data                
 
 
