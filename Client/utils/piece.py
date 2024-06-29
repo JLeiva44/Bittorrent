@@ -66,6 +66,37 @@ class Piece:
         for subpiece in self.subpieces:
             data += subpiece.data
 
-        return data                
+        return data     
+
+
+    def _valid_subpieces(self,raw_data):
+        hashed_piece_raw_data = hashlib.shal(raw_data).digest()
+        if hashed_piece_raw_data == self.piece_hash:
+            return True
+
+        logging.warning("Error Piece Hash")       
+        logging.debug("{} : {}".format(hashed_piece_raw_data, self.piece_hash))
+        return False
+
+    def _wite_piece_on_disk(self):
+        for file in self.files:
+            file_path = file["path"]
+            file_offset = file["fileOffset"]
+            piece_offset = file["pieceOffset"]
+            length = file["length"]
+
+            try:
+                f = open(file_path, 'r+b') # Already existing file
+            except IOError:
+                f = open(file_path, 'wb') # new file
+            except Exception:
+                logging.exception("Can't write to file")
+                return 
+
+            f.seek(file_offset)
+            f.write(self.raw_data[piece_offset:piece_offset+length])
+            f.close()
+                        
+
 
 
