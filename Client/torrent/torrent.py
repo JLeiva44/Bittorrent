@@ -1,12 +1,36 @@
 from hashlib import sha1
+from hashlib import md5
 import bencodepy
+import datetime
+import os
 
+class TorrentCreator:
+    def __init__(self,file_path, piece_size, private, announce_list, comments, source) -> None:
+        self.file_path = file_path
+        self.piece_size = piece_size
+        self.announce_list = announce_list
+        self.comments = comments
+        self.private = private
+        self.source = source
+        self.file_size = os.path.getsize(self.file_path)
+        self.md5sum = md5(open(self.file_path,'rb').read()).digest()
+        self.file_name = os.path.basename(self.file_path)
+
+    @property 
+    def hash_pieces():
+        pass 
+
+    def make_metainfo(self):
+        pass
+
+    def make_torrentfile(self):
+        pass   
+
+   
+        
 
 class Torrent :
-    """Un torrent es un diccionario con las siguientes claves
-    -announce: URL del tracker
-    -info: diccionario cuyas claves son independientes de si 1 o mas archivos son compartidos
-        -"""
+    """ A class that represents a Torrent file data"""
 
     def __init__(self, torrentfile_path) -> None:
         self.torrentfile_path = torrentfile_path
@@ -35,6 +59,15 @@ class Torrent :
             splited = tracker.split(b':')
             trackers.append((splited[0], int(splited[1])))
         return trackers    
+    
+    # def __str__(self):
+    #     return 'Filename: {0}\n' \
+    #            'File length: {1}\n' \
+    #            'Announce URL: {2}\n' \
+    #            'Hash: {3}'.format(self.meta_info[b'info'][b'name'],
+    #                               self.meta_info[b'info'][b'length'],
+    #                               self.meta_info[b'announce'],
+    #                               self.info_hash)
     
 
 t = Torrent("/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Client/torrent/archivo.torrent")
