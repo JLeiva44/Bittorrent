@@ -166,7 +166,8 @@ class Encoder:
         result = bytearray()
         result += str.encode(str(len(value)))
         result += b':'
-        result += str.encode(value)
+        #result += str.encode(value)
+        result += value
         return result
     
     def _encode_list(self,data):
@@ -201,18 +202,3 @@ class Encoder:
         return result        
 
 
-
-d = {
-    '1':'pepe',
-    '2':'JUan'
-}    
-encoder = Encoder(34)
-ben = encoder.encode()
-print(ben)
-print(len(ben))
-print(ben.decode())
-
-
-decoder = Decoder(ben)
-ben_dec = decoder.decode()
-print(ben_dec)
