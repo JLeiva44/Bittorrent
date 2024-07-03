@@ -1,10 +1,66 @@
 from hashlib import sha1
-from . import bencoding
+import bencoding
 from collections import namedtuple
+import os
 
 class TorrentMaker:
-    def __init__(self) -> None:
-        pass
+    """
+        Create a .torrent file from an input file
+    """
+    def __init__(self, path, piece_size,trackers_urls, source) -> None:
+        self.path = path
+        self.piece_size = piece_size
+        self.trackers_urls = trackers_urls
+        self.source = source
+
+    @property
+    def file_size(self):
+        return os.path.getsize(self.path)
+
+    @property
+    def filename(self):
+        return os.path.basename(self.path)
+    
+    @property
+    def pieces(self):
+        """
+        The info pieces is a string representing all pieces SHA1 hashes
+        (ecah 20 bytes long)
+        """
+        pieces = ''
+        with open(f'{self.path}','rb') as f:
+            chunk = f.read(self.piece_size)
+            while(chunk):
+                pieces += sha1(chunk).hexdigest()
+                chunk = f.read(self.piece_size)
+
+            return pieces
+
+    def create_metainfo(self):
+        """Creates the meta-info bencode dict for a torrent file"""
+        metainfo = {}
+        metainfo['announce'] = self.trackers_urls[0]
+        metainfo['info'] = {}
+        metainfo['info']['name'] = self.filename
+        metainfo['info']['length'] = self.file_size
+        metainfo['info']['pieces'] = self.pieces
+        metainfo['info']['piece length'] = self.piece_size
+        metainfo['info']['created by'] = self.source
+        # ver si despues me hace falta agregar mas cosas 
+        # como la fecha, comments, created by ...   
+        return bencoding.Encoder(metainfo).encode()     
+    
+    def create_file(self, folder = '.'):
+        """
+        Creates a .torrent file
+        """
+        metainfo = self.create_metainfo()
+        t_file = open(f'{folder}/{os.path.splitext(self.filename)[0]}.torrent','wb')
+        t_file.write(metainfo)
+        t_file.close() 
+    
+
+
 
 TorrentFile = namedtuple('File',['name','length'])
 class Torrent :
@@ -14,7 +70,7 @@ class Torrent :
         self.file_path = file_path
         self.files = []
 
-        with open(self.torrentfile_path, 'rb') as f:
+        with open(self.file_path, 'rb') as f:
             meta_info = f.read()
             self.meta_info = bencoding.Decoder(meta_info).decode()
             info = bencoding.Encoder(self.meta_info[b'info']).encode()
@@ -86,3 +142,11 @@ class Torrent :
                                   self.info_hash)
 
 
+
+
+# tc = TorrentMaker('Client/torrent',14)
+t = Torrent('Client/torrent/archivo.torrent')
+print(t.piece_length)
+
+tm = TorrentMaker('Client/torrent/ex.txt',262144, ['pruba1.com'],'EL pepe')
+tm.create_file()
