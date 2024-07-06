@@ -50,7 +50,7 @@ class TorrentMaker:
         # como la fecha, comments, created by ...   
         return bencoding.Encoder(metainfo).encode()     
     
-    def create_file(self, folder = '.'):
+    def create_file(self, folder = 'Files/torrents'):
         """
         Creates a .torrent file
         """
@@ -145,8 +145,8 @@ class Torrent :
 
 
 # tc = TorrentMaker('Client/torrent',14)
-t = Torrent('Client/torrent/archivo.torrent')
-print(t.piece_length)
+# t = Torrent('Client/torrent/archivo.torrent')
+# print(t.piece_length)
 
-tm = TorrentMaker('Client/torrent/ex.txt',262144, ['pruba1.com'],'EL pepe')
+tm = TorrentMaker('Files/music1.txt',262144, ['pruba1.com'],'EL pepe')
 tm.create_file()
