@@ -21,10 +21,24 @@ class Piece:
 
 
     def _init_subpieces(self): # see this
-        for i in range(len(self.subpieces)-1):
-            self.subpieces.append(SubPiece(subpiece_size=SUBPIECE_SIZE))
+        
+        if self.number_of_subpieces > 1:
+            for i in range(self.number_of_subpieces):
+                self.subpieces.append(SubPiece())
 
-        self.subpieces.append(SubPiece(subpiece_size=self.piece_size%SUBPIECE_SIZE))        
+            # Last subpiece of last piece, the special block
+            if self.piece_size % SUBPIECE_SIZE > 0: # la ultima tiene el tamano que alcance
+                self.subpieces[self.number_of_subpieces -1].subpiece_size = self.piece_size % SubPiece
+
+        else: # 1 solo bloque => la pieza y la subpieza son del mismo tamano
+            self.subpieces.append(SubPiece(subpiece_size=int(self.piece_size)))            
+
+
+
+
+
+
+
 
 
     def get_empty_subpiece(self):
