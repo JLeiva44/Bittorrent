@@ -33,21 +33,13 @@ class Piece:
         else: # 1 solo bloque => la pieza y la subpieza son del mismo tamano
             self.subpieces.append(SubPiece(subpiece_size=int(self.piece_size)))            
 
-
-
-
-
-
-
-
-
     def get_empty_subpiece(self):
         if self.is_full:
             return None
         
         for index,subpiece in enumerate(self.subpieces):
             if subpiece.state == State.FREE:
-                self.subpieces[index].state = State.PENDING
+                self.subpieces[index].state = State.PENDING 
                 self.subpieces[index].last_seen = time.time()
                 return self.piece_index, index*SUBPIECE_SIZE, subpiece.subpiece_size
             
@@ -88,9 +80,27 @@ class Piece:
         if hashed_piece_raw_data == self.piece_hash:
             return True
 
-        logging.warning("Error Piece Hash")       
-        logging.debug("{} : {}".format(hashed_piece_raw_data, self.piece_hash))
+        # logging.warning("Error Piece Hash")       
+        # logging.debug("{} : {}".format(hashed_piece_raw_data, self.piece_hash))
         return False
+    
+    @property
+    def have_all_blocks(self):
+        '''
+            If all block of the piece succefully downloaded
+        '''
+        return all(sub.state == State.FULL for sub in self.subpieces) 
+    
+    
+    def write_subpiece(self, offset, data):
+        index = offset// SUBPIECE_SIZE
+
+        if not self.is_full and not self.subpieces[index].state == State.FULL:
+            self.subpieces[index].data = data
+            self.subpieces[index].state = State.FULL
+
+        if self.have_all_blocks:
+            self._merge_subpieces()    
 
     def _wite_piece_on_disk(self):
         for file in self.files:
