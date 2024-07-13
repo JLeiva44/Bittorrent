@@ -7,8 +7,9 @@ import zmq
 from subpiece import SubPiece, SUBPIECE_SIZE, State
 
 class Piece:
-    def __init__(self, piece_index:int, piece_size:int, piece_hash :str) -> None:
+    def __init__(self, piece_index:int, piece_offset, piece_size:int, piece_hash :str) -> None:
         self.piece_index:int = piece_index
+        self.piece_offset = piece_offset
         self.piece_size:int = piece_size
         self.piece_hash :str = piece_hash
         self.is_full: bool = False
@@ -91,6 +92,8 @@ class Piece:
         '''
         return all(sub.state == State.FULL for sub in self.subpieces) 
     
+    def clean_memory(self):
+        self.raw_data = b''
     
     def write_subpiece(self, offset, data):
         index = offset// SUBPIECE_SIZE
