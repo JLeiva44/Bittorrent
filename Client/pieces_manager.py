@@ -49,3 +49,56 @@ class PiecesManager:
             piece_size = self.file_size % self.piece_size if i == self.number_of_pieces -1 else self.piece_size
             piece = Piece(i,piece_offset, piece_size, piece_hash)
             self.pieces.append(piece)           
+
+
+    def _check_local_pieces(self):
+        path = self.filename
+        if os.path.exists(path):
+            for index in range(self.number_of_pieces):
+                with open(path, 'rb') as f:
+                    chunk = f.read(self.piece_size)
+                    while chunk:
+                        sha1_chunk = hashlib.sha1(chunk).digest()
+                        piece : Piece = self.pieces[index]
+                        if sha1_chunk == piece.piece_hash :
+                            self.bitfield[index] = True
+                            self.completed_pieces+=1
+                        chunk = f.read(self.piece_size)
+        else: # build new file
+            f = open(path,"wb")
+            f.seek(self.file_size-1)
+            f.write(b"\0")
+            f.close()
+
+
+    def receive_subP_of_piece(self, piece_index, subpiece_offset, raw_data):
+
+        if not self.bitfield[piece_index]:
+            piece = self.pieces[piece_index]
+            piece.write_subpiece(subpiece_offset, raw_data)
+
+            if piece.is_full:
+                self.bitfield[piece_index] = True
+                self.completed_pieces+=1
+
+                # Write in disk
+                new_file = open(self.filename, 'r+b')
+                new_file.seek(piece.piece_offset)
+                new_file.write(piece.raw_data)
+                new_file.close()            
+
+    def get_subP_of_piece(self, piece_index, supiece_offset):
+        piece = self.pieces[piece_index]
+
+        if not piece.raw_data != b'':
+            pass
+
+        # not finish this yet
+
+    def clean_memory(self, piece_index):
+        piece: Piece = self.pieces[piece_index]
+
+        if not piece.raw_data != b'':
+            piece.clean_memory()    
+
+

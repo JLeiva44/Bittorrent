@@ -22,16 +22,16 @@ class TorrentMaker:
         return os.path.basename(self.path)
     
     @property
-    def pieces(self):
+    def pieces(self) -> bytes:
         """
         The info pieces is a string representing all pieces SHA1 hashes
         (ecah 20 bytes long)
         """
-        pieces = ''
+        pieces = b''
         with open(f'{self.path}','rb') as f:
             chunk = f.read(self.piece_size)
             while(chunk):
-                pieces += sha1(chunk).hexdigest()
+                pieces += sha1(chunk).digest()
                 chunk = f.read(self.piece_size)
 
             return pieces
@@ -50,7 +50,7 @@ class TorrentMaker:
         # como la fecha, comments, created by ...   
         return bencoding.Encoder(metainfo).encode()     
     
-    def create_file(self, folder = 'Files/torrents'):
+    def create_file(self, folder = '/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files'):
         """
         Creates a .torrent file
         """
@@ -148,5 +148,5 @@ class Torrent :
 # t = Torrent('Client/torrent/archivo.torrent')
 # print(t.piece_length)
 
-tm = TorrentMaker('Files/music1.txt',262144, ['pruba1.com'],'EL pepe')
-tm.create_file()
+# tm = TorrentMaker('Files/file2.txt',262144, ['127.0.0.1:8080'],'EL pepe')
+# tm.create_file()
