@@ -1,4 +1,5 @@
 import zmq
+import threading
 
 HOST = '127.0.0.1'
 PORT1 = '8080'
@@ -9,11 +10,12 @@ class Tracker:
         self.ip = ip
         self.port = port
         self.data = {}
-        self._sart_server()
+        #self._sart_server()
+        threading.Thread(target=self._start_server, daemon=True).start()  # Start server thread
 
 
 
-    def _sart_server(self):
+    def _start_server(self):
         context = zmq.Context()
         p1 = "tcp://"+ self.ip +":"+ self.port # how and where to connect
         socket = context.socket(zmq.REP) # reply socket

@@ -14,6 +14,9 @@ class SubPiece:
         self.data: bytes = data
         self.last_seen:float = last_seen
 
+    def update_status(self, new_state)   :
+        pass 
+
     def __str__(self):
 
         return "%s - %d - %d - %d" % (self.state, self.subpiece_size, len(self.data), self.last_seen)    

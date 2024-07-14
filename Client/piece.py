@@ -23,16 +23,16 @@ class Piece:
 
     def _init_subpieces(self): # see this
         
-        if self.number_of_subpieces > 1:
-            for i in range(self.number_of_subpieces):
-                self.subpieces.append(SubPiece())
+        #if self.number_of_subpieces > 1:
+        for i in range(self.number_of_subpieces -1):
+            self.subpieces.append(SubPiece(subpiece_size=SUBPIECE_SIZE))
 
             # Last subpiece of last piece, the special block
-            if self.piece_size % SUBPIECE_SIZE > 0: # la ultima tiene el tamano que alcance
-                self.subpieces[self.number_of_subpieces -1].subpiece_size = self.piece_size % SubPiece
+        #if self.piece_size % SUBPIECE_SIZE > 0: # la ultima tiene el tamano que alcance
+        self.subpieces.append(SubPiece(subpiece_size= self.piece_size % SUBPIECE_SIZE))
 
-        else: # 1 solo bloque => la pieza y la subpieza son del mismo tamano
-            self.subpieces.append(SubPiece(subpiece_size=int(self.piece_size)))            
+        # else: # 1 solo bloque => la pieza y la subpieza son del mismo tamano
+        #     self.subpieces.append(SubPiece(subpiece_size=int(self.piece_size)))            
 
     def get_empty_subpiece(self):
         if self.is_full:
@@ -52,8 +52,9 @@ class Piece:
                 return False
         return True
 
-    def get_subpiece(self, subpiece_offset, subpiece_length):
-        return self.raw_data[subpiece_offset:subpiece_length]
+    def get_subpiece(self, subpiece_offset):
+        subpiece_index = subpiece_offset // SUBPIECE_SIZE
+        return self.subpieces[subpiece_index]
 
     def set_subpiece(self, offset, data):
         index = int(offset/SUBPIECE_SIZE)
@@ -94,6 +95,33 @@ class Piece:
     
     def clean_memory(self):
         self.raw_data = b''
+
+    def put_data(self, data):
+        self.raw_data = data
+        self.is_full = True
+
+    @property
+    def in_memory(self):
+        return self.raw_data != b''  
+
+    def load_from_disk(self, filename : str):
+
+        # filename, self.piece_ofsset, self.piece_size
+        new_file = open(filename, 'rb')
+        new_file.seek(self.piece_offset)
+        raw_data = new_file.read(self.piece_size)
+        new_file.close()
+        piece_data = raw_data      
+
+        self.raw_data = piece_data
+        self._rebuild_subpieces()
+
+    def _rebuild_subpieces(self):
+        for i in range(self.number_of_subpieces -1):
+            self.subpieces[i].data = self.raw_data[i * SUBPIECE_SIZE: (i+1)* SUBPIECE_SIZE]
+        self.subpieces[self.number_of_subpieces - 1].data = self. raw_data[(self.number_of_subpieces-1)* SUBPIECE_SIZE]    
+
+
     
     def write_subpiece(self, offset, data):
         index = offset// SUBPIECE_SIZE
