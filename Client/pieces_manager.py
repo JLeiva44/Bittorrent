@@ -6,7 +6,7 @@ from torrent import Torrent
 
 class PiecesManager:
     def __init__(self, torrent, path_to_download) -> None:
-        info = dict(torrent.meta_info)
+        info = dict(torrent.meta_info[b'info'])
 
         self.file_size = info[b'length']
         self.piece_size = info['piece length']
@@ -19,8 +19,13 @@ class PiecesManager:
         self.path = path_to_download
 
         self._build_pieces()
+        self._check_local_pieces()
 
 
+    @property
+    def download_completed(self):
+        return self.completed_pieces == self.number_of_pieces
+    
     @property
     def amount_of_bytes_already_downloaded(self):
         total_downloaded = 0
@@ -44,7 +49,7 @@ class PiecesManager:
     def _build_pieces(self):
         for i in range(self.number_of_pieces):
             piece_offset = self.piece_size * i
-            starthash_index = i * 40
+            starthash_index = i * 40 # ver esto
             piece_hash = self.pieces_hash[starthash_index: starthash_index + 40]
             piece_size = self.file_size % self.piece_size if i == self.number_of_pieces -1 else self.piece_size
             piece = Piece(i,piece_offset, piece_size, piece_hash)
@@ -62,6 +67,7 @@ class PiecesManager:
                         piece : Piece = self.pieces[index]
                         if sha1_chunk == piece.piece_hash :
                             self.bitfield[index] = True
+                            piece.is_full = True
                             self.completed_pieces+=1
                         chunk = f.read(self.piece_size)
         else: # build new file
@@ -88,17 +94,19 @@ class PiecesManager:
                 new_file.close()            
 
     def get_subP_of_piece(self, piece_index, supiece_offset):
-        piece = self.pieces[piece_index]
+        piece : Piece = self.pieces[piece_index]
 
-        if not piece.raw_data != b'':
-            pass
+        if not piece.in_memory:
+            piece.load_from_disk(self.filename)
 
-        # not finish this yet
+        subpiece = piece.get_subpiece(supiece_offset)    
+        return subpiece
+
 
     def clean_memory(self, piece_index):
         piece: Piece = self.pieces[piece_index]
 
-        if not piece.raw_data != b'':
+        if not piece.in_memory:
             piece.clean_memory()    
 
 

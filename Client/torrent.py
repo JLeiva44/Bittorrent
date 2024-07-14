@@ -2,6 +2,7 @@ from hashlib import sha1
 import bencoding
 from collections import namedtuple
 import os
+import math
 
 class TorrentMaker:
     """
@@ -69,6 +70,7 @@ class Torrent :
     def __init__(self, file_path) -> None:
         self.file_path = file_path
         self.files = []
+        self.number_of_pieces = math.ceil(self.file_length/ self.piece_length)
 
         with open(self.file_path, 'rb') as f:
             meta_info = f.read()
@@ -100,6 +102,10 @@ class Torrent :
         Get the length in bytes for each piece
         """
         return self.meta_info[b'info'][b'piece length']
+    
+    @property
+    def file_length(self):
+        return self.meta_info[b'info'][b'length']
 
     @property 
     def total_size(self):
