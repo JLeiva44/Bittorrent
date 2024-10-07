@@ -4,6 +4,7 @@ import threading
 import sys
 import time
 import hashlib
+import random
 
 # Operation Codes
 FIND_SUCCESSOR = 1
@@ -22,7 +23,7 @@ def getShaRepr(data: str):
 
 class ChordNodeReference:
     def __init__(self, id: int, ip: str, port: int = 8001):
-        self.id = id
+        self.id = getShaRepr(id)
         self.ip = ip
         self.port = port
 
@@ -149,9 +150,16 @@ class ChordNode:
             self.pred = node
 
     def fix_fingers(self):
-       #YOUR CODE HERE
-       pass        
-
+        """Regularly refresh finger table entries."""
+        while True:
+            # print('Fixing fingers')
+            try:
+                i = random.randint(0, self.m - 1)
+                self.next = (self.id + 2**i) % (2**self.m)
+                self.finger[i] = self.find_succ(self.next)
+            except Exception as e:
+                print(f"Error in fix fingers: {e}")
+            time.sleep(10)
     def check_predecessor(self):
         while True:
             try:
