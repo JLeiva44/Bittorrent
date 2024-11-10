@@ -5,6 +5,9 @@ import sys
 import time
 import hashlib
 import random
+import logging
+
+logger = logging.getLogger("__main__")
 
 # Operation Codes
 FIND_SUCCESSOR = 1
@@ -12,10 +15,22 @@ FIND_PREDECESSOR = 2
 GET_SUCCESSOR = 3
 GET_PREDECESSOR = 4
 NOTIFY = 5
-# INSERT_NODE = 6
-# REMOVE_NODE = 7
-CHECK_PREDECESSOR = 6
+
+
+CHECK_PREDECESSOR = 6 # VER SI QUITAR
 CLOSEST_PRECEDING_FINGER = 7
+GET_VALUE = 8
+GET_KEYS = 9
+STORE_KEY = 10
+UPDATE_KEY = 11
+DELETE_KEY = 12
+GET_REPLICATE = 13
+STORE_REPLICATE = 14
+UPDATE_REPLICATE = 15
+DELETE_REPLICATE = 16
+CHECK_CONN = 17
+GET_MY_VALUES = 18
+CLEAN_REPLICATES = 19
 
 def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(),16)
@@ -75,7 +90,7 @@ class ChordNodeReference:
     
 
 class ChordNode:
-    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 8):
+    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 8, values = {}):
         self.id = getShaRepr(id)
         self.ip = ip
         self.port = port
@@ -85,9 +100,18 @@ class ChordNode:
         self.m = m # NUmber of bits in the hash/key space
         self.finger = [self.ref] * self.m # Finger table
         self.next = 0 # Finger table index to fix next
+        self.succ_list = [] # List of succesors 
+        self.values : dict = values
+        self.replicates = {}
+        self.is_stabilizing = False
+
+        logger.debug(f"Stabilizing")
         threading.Thread(target=self.stabilize, daemon=True).start() # Start stabilize thread
+        logger.debug(f"Fixing Fingers")
         threading.Thread(target=self.fix_fingers, daemon=True).start() # Start fix fingers Thread
+        logger.debug(f"Checking predecesor")
         threading.Thread(target=self.check_predecessor, daemon=True).strart()# Start check predecesor thread
+        logger.debug(f"initializing server")
         threading.Thread(target=self.start_server, daemon=True).start()
 
     def _inbetween(self, k: int, start: int, end: int) -> bool:
