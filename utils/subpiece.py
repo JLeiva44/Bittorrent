@@ -1,6 +1,6 @@
 from enum import Enum
 
-SUBPIECE_SIZE = 16383 # 16kb = 16383 bits = 2^14 bits)
+DEFAULT_SUBPIECE_SIZE = 16383 # 16kb = 16383 bits = 2^14 bits)
 
 class State(Enum):
     FREE = 0
@@ -8,14 +8,25 @@ class State(Enum):
     FULL = 2
 
 class SubPiece:
-    def __init__(self, state : State = State.FREE, subpiece_size: int = SUBPIECE_SIZE, data:bytes = b'', last_seen:float = 0 ) -> None:
-        self.state:State = state
-        self.subpiece_size:int = subpiece_size
-        self.data: bytes = data
-        self.last_seen:float = last_seen
+    def __init__(self, state : State = State.FREE, subpiece_size: int = DEFAULT_SUBPIECE_SIZE, data:bytes = b'', last_seen:float = 0 ) -> None:
+        self.state = state
+        self.subpiece_size = subpiece_size
+        self.data= data
 
-    def update_status(self, new_state)   :
-        pass 
+    def update_subpiece_status(self, new_state: State)   :
+        self.state = new_state 
+
+    def __getState__(self):
+        return {
+            'data': self.data,
+            'subpiece_size' : self.subpiece_size,
+            'self.state': self.state 
+        }
+
+    def __setstate__(self, state):
+        self.data = state['data']
+        self.subpiece_size = state['subpiece_size']
+        self.state = state['state']    
 
     def __str__(self):
 
