@@ -2,7 +2,7 @@ import hashlib
 import math 
 import time 
 import logging
-import zmq
+#import zmq
 
 from subpiece import SubPiece, SUBPIECE_SIZE, State
 
@@ -153,5 +153,5 @@ class Piece:
             f.close()
                         
 
-
+print("sdkjbfdjbf")
 
