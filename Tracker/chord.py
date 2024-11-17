@@ -15,8 +15,6 @@ FIND_PREDECESSOR = 2
 GET_SUCCESSOR = 3
 GET_PREDECESSOR = 4
 NOTIFY = 5
-
-
 CHECK_PREDECESSOR = 6 # VER SI QUITAR
 CLOSEST_PRECEDING_FINGER = 7
 GET_VALUE = 8
@@ -52,27 +50,26 @@ class ChordNodeReference:
             print(f"Error sending data: {e}")
             return b''
 
-    def find_succ(self, id: int) -> 'ChordNodeReference':
+    def find_successor(self, id: int) -> 'ChordNodeReference':
         response = self._send_data(FIND_SUCCESSOR, str(id)).decode().split(',')
         return ChordNodeReference(int(response[0]), response[1], self.port)
 
-    def find_pred(self, id: int) -> 'ChordNodeReference':
+    def find_predecessor(self, id: int) -> 'ChordNodeReference':
         response = self._send_data(FIND_PREDECESSOR, str(id)).decode().split(',')
         return ChordNodeReference(int(response[0]), response[1], self.port)
-
+    
     @property
-    def successor(self) -> 'ChordNodeReference':
+    def succ(self) -> 'ChordNodeReference':
         response = self._send_data(GET_SUCCESSOR).decode().split(',')
-        print(response)
         return ChordNodeReference(int(response[0]), response[1], self.port)
 
     @property
-    def predecessor(self) -> 'ChordNodeReference':
+    def pred(self) -> 'ChordNodeReference':
         response = self._send_data(GET_PREDECESSOR).decode().split(',')
         return ChordNodeReference(int(response[0]), response[1], self.port)
 
-    def notify(self, id: int) -> 'ChordNodeReference':
-        self._send_data(NOTIFY, str(id))
+    def notify(self, node: 'ChordNodeReference'):
+        self._send_data(NOTIFY, f'{node.id},{node.ip}')
 
     def check_predecessor(self):
         self._send_data(CHECK_PREDECESSOR)    
@@ -90,7 +87,7 @@ class ChordNodeReference:
     
 
 class ChordNode:
-    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 8, values = {}):
+    def __init__(self, id: int, ip: str, port: int = 8001, m: int = 160, values = {}):
         self.id = getShaRepr(id)
         self.ip = ip
         self.port = port
@@ -122,11 +119,6 @@ class ChordNode:
             return start < k or k <= end
         
 
-    def closest_preceding_finger(self, id: int) -> 'ChordNodeReference':
-        for i in range(self.m - 1, -1, -1):
-            if self.finger[i] and self._inbetween(self.finger[i].id, self.id, id):
-                return self.finger[i]
-        return self.ref    
         
     def find_succ(self, id: int) -> 'ChordNodeReference':
         node = self.find_pred(id)  # Find predecessor of id
@@ -138,6 +130,12 @@ class ChordNode:
             node = node.closest_preceding_finger(id)
         return node
     
+    def closest_preceding_finger(self, id: int) -> 'ChordNodeReference':
+        for i in range(self.m - 1, -1, -1):
+            if self.finger[i] and self._inbetween(self.finger[i].id, self.id, id):
+                return self.finger[i]
+        return self.ref 
+       
     def join(self, node: 'ChordNodeReference'):
         """Join a Chord network using 'node' as an entry point."""
         if node:
@@ -173,17 +171,18 @@ class ChordNode:
         if not self.pred or self._inbetween(node.id, self.pred.id, self.id):
             self.pred = node
 
+    # Fix fingers method to periodically update the finger table
     def fix_fingers(self):
-        """Regularly refresh finger table entries."""
         while True:
-            # print('Fixing fingers')
             try:
-                i = random.randint(0, self.m - 1)
-                self.next = (self.id + 2**i) % (2**self.m)
-                self.finger[i] = self.find_succ(self.next)
+                self.next += 1
+                if self.next >= self.m:
+                    self.next = 0
+                self.finger[self.next] = self.find_succ((self.id + 2 ** self.next) % 2 ** self.m)
             except Exception as e:
-                print(f"Error in fix fingers: {e}")
+                print(f"Error in fix_fingers: {e}")
             time.sleep(10)
+
     def check_predecessor(self):
         while True:
             try:
@@ -233,3 +232,15 @@ class ChordNode:
                     conn.sendall(response)
                 conn.close()
 
+if __name__ == "__main__":
+    ip = socket.gethostbyname(socket.gethostname())
+    id = getShaRepr(ip)
+    node = ChordNode(id, ip)
+
+    if len(sys.argv) >= 2:
+        other_ip = sys.argv[1]
+        id = getShaRepr(other_ip)
+        node.join(ChordNodeReference(other_ip, other_ip, node.port))
+    
+    while True:
+        pass

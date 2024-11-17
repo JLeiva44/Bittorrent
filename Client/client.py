@@ -178,7 +178,8 @@ class Client:
 
         
 
-c = Client(1,'127.222.333.11','1880')
-c.seed_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.txt','127.0.0.1:8080')
-#c.download_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.torrent')
+# c = Client(1,'127.222.333.11','1880')
+# c.seed_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.txt','127.0.0.1:8080')
+# #c.download_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.torrent')
 
+print("hola")
