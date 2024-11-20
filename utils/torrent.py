@@ -51,7 +51,7 @@ class TorrentMaker:
         # como la fecha, comments, created by ...   
         return bencoding.Encoder(metainfo).encode()     
     
-    def create_file(self, folder = '/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files'):
+    def create_file(self, folder = '/home/jose/Documents/proyectos/Bittorrent/torrent_files'):
         """
         Creates a .torrent file
         """
@@ -67,7 +67,7 @@ TorrentFile = namedtuple('File',['name','length'])
 class Torrent :
     """Represents the torrent meta-data that is kept within a .torrent file"""
 
-    def __init__(self, file_path) -> None:
+    def __init__(self, file_path = None) -> None:
         self.file_path = file_path
         self.files = []
         self.number_of_pieces = math.ceil(self.file_length/ self.piece_length)
@@ -106,6 +106,10 @@ class Torrent :
     @property
     def file_length(self):
         return self.meta_info[b'info'][b'length']
+
+    @property
+    def number_of_pieces(self):
+        math.ceil(self.file_length/self.piece_length)
 
     @property 
     def total_size(self):
@@ -150,9 +154,11 @@ class Torrent :
 
 
 
-# tc = TorrentMaker('Client/torrent',14)
-# t = Torrent('Client/torrent/archivo.torrent')
-# print(t.piece_length)
+class TorrentReader:
 
-# tm = TorrentMaker('Files/file2.txt',262144, ['127.0.0.1:8080'],'EL pepe')
-# tm.create_file()
+    def __init__(self, dottorrent_path):
+        self.dottorrent_path = dottorrent_path
+        self.metainfo = self._read()
+
+    def _read(self):
+        dottorrent_f = open()    
