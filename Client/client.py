@@ -1,7 +1,10 @@
-from torrent import TorrentMaker, Torrent
-from pieces_manager import PiecesManager
-from subpiece import SUBPIECE_SIZE, SubPiece
-import zmq
+from utils.torrent import TorrentMaker, Torrent
+from utils.pieces_manager import PiecesManager
+from utils.subpiece import State, DEFAULT_SUBPIECE_SIZE, SubPiece
+from utils.bclient_logger import logger
+import Pyro4
+import os
+#import zmq
 import random
 import threading
 import math
@@ -12,174 +15,143 @@ PORT1 = '8001'
 
 PIECE_SIZE =  2**18 # 256 Kb (kilobibits) = 262144 bits
 
+ACTUAL_PATH = os.getcwd()
+
 class Client:
     def __init__(self, client_id, ip, port) -> None:
         self.id = client_id
         self.ip = ip
         self.port = port
-        threading.Thread(target=self.start_server, daemon=True).start()
-
-    def start_server(self):
-        context = zmq.Context()
-        p1 = "tcp://"+ self.ip +":"+ self.port # how and where to connect
-        socket = context.socket(zmq.REP) # reply socket
-        socket.bind(p1)    
-        message = socket.recv_pyobj()
-        while not message[0] == 'STOP':
-            if message[0] == 'REQUEST SUBPIECE': # (info, piece_index, subpiece_offset)
-                torrent = message[1]
-                piece_index = message[2]
-                subpiece_offset = message[3]
-                pieces_mgr = PiecesManager(torrent, 'Downloaded_Files')
-
-                reply = pieces_mgr.get_subP_of_piece(piece_index, subpiece_offset)
-                socket.send_pyobj(['REPLY SUBPIECE OK', reply])
-
-            elif message[0] == 'GET BITFIELD': # getBF(info)
-                torrent = message[1]
-                pieces_mgr = PiecesManager(torrent, 'Downloaded_Files')
-                reply = pieces_mgr.bitfield
-                socket.send_pyobj(['REPLY BITFIELD OK',reply])
-
-            message = socket.recv_pyobj() 
-
-    def _send_message(self,message, ip, port):
-        context = zmq.Context()
-        url = "tcp://" + ip + ":" + port    
-        socket = context.socket(zmq.REQ)
-        socket.connect(url)
-        socket.send_pyobj(message)
-
-        answer = socket.recv_pyobj()
-        return answer
-
-    def seed_file(self, file_path, tracker_url): # Ver despues si poner mas parametros como PRIVATE, COMMents, SOURCE ...
-        torrent_maker = TorrentMaker(file_path,PIECE_SIZE, [tracker_url], 'pepe')
-        pieces = torrent_maker.pieces
-        torrent_maker.create_file()
-
-
-        # 1 solo tracker 
-        tracker_ip, tracker_port = tracker_url.split(':')
-        print(pieces)
-        print(tracker_ip, tracker_port)
-
-        # llamar a la bd del tracker para que se actualice
-        # context = zmq.Context()
-        # p1 = "tcp://" + tracker_ip + ':' + str(tracker_port)
-        # socket = context.socket(zmq.REQ)
-        # socket.connect(p1)
-        # socket.send_pyobj(['WRITE', pieces, self.ip, self.port])
-
-        message = ['WRITE', pieces, self.ip, self.port]
-
-        answer = self._send_message(message, tracker_ip, tracker_port)
-        print(answer)
-        #socket.send_pyobj(['STOP'])
-
-
-    def find_random_piece(self, peers, torrent : Torrent, owned_pieces):
-        owners = [[] for i in range(torrent.number_of_pieces)]
-
-        for ip, port in peers :
-            response_to_bf_request = self._send_message(['GET BITFIELD', torrent])
-            answer_status = response_to_bf_request[0]
-
-            peer_bitfield = response_to_bf_request[1]
-            for i in range(len(peer_bitfield)):
-                if peer_bitfield[i]:
-                    owners[i].append((ip, port))
-
-            p_index = random.randint(0, len(owners)-1)
-            while owned_pieces[p_index] or len(owners[i] == 0):
-                p_index = random.randint(0, len(owners)-1) 
-
-            return p_index, owners                           
-
-
-        print("Este es el bitfield")
-        print(peer_bitfield)
+        self.peers = []
 
     
+    @Pyro4.expose
+    def get_bitfield_of(self, torrent):
+        piece_manager = PiecesManager(torrent, 'files')
+        return piece_manager.bitfield
+    
+    @Pyro4.expose
+    def get_subpiece_of_piece(self, torrent, piece_index, subpiece_offset):
+        piece_manager = PiecesManager(torrent, 'files')
+        return piece_manager.get_subP_of_piece(piece_index, subpiece_offset)
+    
+
+    def connect_to(self, ip, port, type_of_peer):
+        ns = Pyro4.locateNS()
+        #by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
+        uri = ns.lookup(f"{type_of_peer}{ip}:{port}")
+        proxy = Pyro4.Proxy(uri=uri)
+        return proxy
 
 
+    def update_trackers(self, trackers, sha1, remove: bool = False):
+        if remove :
+            for tracker_ip, tracker_port in trackers:
+                tracker_proxy = self.connect_to(tracker_ip, tracker_port,'tracker')
+                tracker_proxy.remove_from_database(sha1, self.ip, self.port)
 
-         
+        else:
+            print("Updating Trackers")
+            for tracker_ip, tracker_port in trackers:
+                tracker_proxy = self.connect_to(tracker_ip,tracker_port, 'tracker')
+                tracker_proxy.add_to_trackers(sha1, self.ip, self.port)
 
-    def download_file(self,dottorrent_file_path, path_to_download = 'Downloaded_Files'):
-        torrent = Torrent(dottorrent_file_path) 
-        peers = self.get_peers(torrent)
 
-        pieces_manager = PiecesManager(torrent,path_to_download)
+    def upload_file(self, path, tracker_urls, source = "unknow"):
+        '''
+        Upload a local File
+        '''
+        torrent_maker = TorrentMaker(path,1<<18,tracker_urls,source) 
+        pieces = torrent_maker.pieces
+        torrent_maker.create_file()  
 
-        while not pieces_manager.download_completed:
-            random_piece, owners = self.find_random_piece(peers, torrent, pieces_manager.bitfields)
+        trackers = []
 
-            while owners:
-                peer_for_download = owners[random.randint(0, len(owners)-1)]
+        for url in tracker_urls:
+            ip,port = url.split(':')
+            trackers.append((ip,int(port)))
+        print(type(trackers))
+        print(trackers)
+        print("LLamando a update trackers")
+        self.update_trackers(trackers, pieces) 
+
+    def get_peers_from_tracker(self, torrent):
+        info = torrent # Torrent is a Python class that represents a torrent file
+        peers = []
+        trackers = info.announce
+
+        for tracker_ip, tracker_port in trackers:
+            tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
+            for peer in tracker_proxy.get_peers(info.pieces):
+                peers.append(peer)
+        return peers    
+
+    def find_rarest_piece(self, peers, torrent, owned_pieces):
+        count_of_pieces = [0 for i in range(torrent.number_of_pieces)]      
+        owners = [[] for i in range(torrent.number_of_pieces)]
+        print(peers)
+
+        for ip, port in peers:
+            proxy = self.connect_to(ip,port, 'client')
+            peer_bit_field = proxy.get_bitfield_of(torrent.meta_info[b'info']) 
+
+            for i in range(len(peer_bit_field)):
+                if peer_bit_field[i]:
+                    count_of_pieces[i] = count_of_pieces[i] + 1
+                    owners[i].append((ip,port))
+            rarest_piece = count_of_pieces.index(min(count_of_pieces))
+            while(owned_pieces[rarest_piece]):
+                count_of_pieces[rarest_piece] = math.inf
+                rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
+
+        return rarest_piece, owners[rarest_piece]       
+    
+
+    def download_file(self, torrent_file_path, save_at = "files"):
+        """
+        Start download of a file from a local dottorrent file
+        """
+
+        torrent = Torrent(torrent_file_path)
+        info = torrent.info
+        peers = self.get_peers_from_tracker(torrent)
+        piece_manager_inst = PiecesManager(info, save_at)
+
+        self.update_trackers(torrent.announce, torrent.pieces)
+
+
+        while not piece_manager_inst.download_completed:
+            rarest_piece, owners = self.find_rarest_piece(peers, torrent, piece_manager_inst.bitfield)
+            while len(owners)>0:
+                print("tengo un owner")
+                peer_for_download = owners[random.randint(0,len(owners)-1)]
                 owners.remove(peer_for_download)
 
-                pieces_manager.clean_memory(random_piece)
-                self.download_piece_from_peer(peer_for_download, torrent, rarest_piece, pieces_manager)
+                piece_manager_inst.clean_memory(rarest_piece)
+
+                print("Voy a tratar de descargar la pieza")
+                self.download_piece_from_peer(peer_for_download, torrent, rarest_piece, piece_manager_inst)
                 break
             if not len(owners):
                 break
 
-    def download_piece_from_peer(self,peer, torrent : Torrent, piece_index, piece_manager : PiecesManager):
-        peer_ip = peer[0]
-        peer_port = peer[1]
+
+    def download_piece_from_peer(self, peer, torrent, piece_index, piece_manager):
+        try:
+            proxy_peer = self.connect_to(peer[0],peer[1], 'client')
+        except:
+            logger.error("Connection failure")
+            return
 
         piece_size = torrent.file_length % torrent.piece_length if piece_index == piece_manager.number_of_pieces -1 else torrent.piece_length
-        for i in range(int(math.ceil(float(piece_size) / SUBPIECE_SIZE))):
-            received_subpiece_response = self._send_message(['REQUEST SUBPIECE',torrent,piece_index, i * SUBPIECE_SIZE ]) 
-            answer_status = received_subpiece_response[0]
-            print(answer_status)
-            received_subpiece = received_subpiece_response[1]
-
-            raw_data = base64.b64decode(received_subpiece.data)
-            piece_manager.receive_subP_of_piece(piece_index, i * SUBPIECE_SIZE, raw_data)
-
+        for i in range(int(math.ceil(float(piece_size) / DEFAULT_SUBPIECE_SIZE))):
+            received_subpiece = proxy_peer.get_subpiece_of_piece(torrent.info, piece_index, i*DEFAULT_SUBPIECE_SIZE)
+            print('este es el bloque que me mandaron')
+            print(received_subpiece)
+            raw_data = base64.b64decode(received_subpiece['data']['data'])
+            piece_manager.receive_subP_of_piece(piece_index, i*DEFAULT_SUBPIECE_SIZE, raw_data)
+          
 
 
 
 
-    def get_peers(self, torrent : Torrent):
-        tracker_url = torrent.announce
-        print("Esta es la url del tracker")
-        print(tracker_url)
-        splited = tracker_url.split(':')
-        tracker_ip = splited[0]
-        tracker_port = int(splited[1])
-
-        pieces = torrent.meta_info[b'info'][b'pieces']
-
-        # context = zmq.Context()
-        # p1 = "tcp://" + tracker_ip + ':' + str(tracker_port)
-        # socket = context.socket(zmq.REQ)
-        # socket.connect(p1)
-        # socket.send_pyobj(['REQUEST PEERS', pieces])
-
-        m1 = ['REQUEST PEERS', pieces]
-        answer1 = self._send_message(m1, tracker_ip, tracker_port)
-
-        #message = socket.recv_pyobj()
-
-        #answer2 = socket.send_pyobj(['STOP'])
-
-        answer2 = self._send_message(['STOP'],tracker_ip,tracker_port)
-
-        status = answer2[0]
-        print(status)
-        peers = answer1[1]
-
-        return peers
-
-    
-
-        
-
-# c = Client(1,'127.222.333.11','1880')
-# c.seed_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.txt','127.0.0.1:8080')
-# #c.download_file('/media/jose/A63C16883C1654211/Proyectos/Bittorrent/Bittorrent/Files/f.torrent')
-
-print("hola")
