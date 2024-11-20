@@ -1,5 +1,5 @@
 from hashlib import sha1
-import bencoding
+import utils.bencoding as bencoding
 from collections import namedtuple
 import os
 import math
