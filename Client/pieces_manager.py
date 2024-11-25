@@ -1,5 +1,5 @@
-from utils.piece import Piece
-from utils.disk_io import DiskIO
+from piece import Piece
+from disk_io import DiskIO
 import os
 import math
 import hashlib
