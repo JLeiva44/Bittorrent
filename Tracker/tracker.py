@@ -1,10 +1,15 @@
 
-import zmq
+import Pyro4
 import threading
+import hashlib
 
 HOST = '127.0.0.1'
 PORT1 = '8080'
 PORT2 = '8001'
+
+def sha256_hash(s):
+    return int(hashlib.sha256(s.encode()).hexdigest(), 16)
+
 
 class Tracker:
     def __init__(self, ip, port) -> None:
@@ -12,67 +17,40 @@ class Tracker:
         self.port = port
         self.data = {}
         #self._sart_server()
-        threading.Thread(target=self._start_server, daemon=True).start()  # Start server thread
+        #threading.Thread(target=self._start_server, daemon=True).start()  # Start server thread
 
+    def connect_to(self, ip, port, type_of_peer):
+        ns = Pyro4.locateNS()
+        # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
+        uri = ns.lookup(f"{type_of_peer}{ip}:{port}")
+        proxy = Pyro4.Proxy(uri=uri)
 
+        # try:
+        #     tracker_proxy._pyroConnection.ping()
+        #     print(f"Succefuly connection with the TRACKER at {tracker_ip}:{tracker_port}")
+        # except Pyro4.errors.CommunicationError:
+        #     print("TRACKER Unreachable")
 
-    def _start_server(self):
-        context = zmq.Context()
-        p1 = "tcp://"+ self.ip +":"+ self.port # how and where to connect
-        socket = context.socket(zmq.REP) # reply socket
-        socket.bind(p1)    
-        message = socket.recv_pyobj()
-        while not message[0] == 'STOP':
-            if message[0] == 'REQUEST PEERS':
-                pieces = message[1]
-                print(pieces)
-                print(self.data)
-                reply = self.get_clients_for_a_file[pieces]
-                socket.send_pyobj(['REPLY PEERS',reply])
+        return proxy
 
-            elif message[0] == 'WRITE':
-                pieces = message[1]
-                ip = message[2]
-                port = message[3]
-                self.add_client_to_data(pieces,ip, port)
-                print("Se anadio un peer ")
-                print(self.data)
-                socket.send_pyobj(['OK'])
-
-                
-            message = socket.recv_pyobj()    ;
-                
-
-
-
-    def get_clients_for_a_file(self, pieces):
-        # OJO aqui en realidad hay que ponerse a buscar x el CHORD y to eso
-
-        return self.data[pieces]
-
-    def add_client_to_data(self,pieces, ip, port):
-        try:
-            self.data[pieces]
-        except KeyError:
-            self.data[pieces] = [(ip,port)]
+    @Pyro4.expose
+    def add_to_trackers(self, pieces_sha1, ip, port):
+        pieces_sha256 = sha256_hash(pieces_sha1)
+        if self.successor == '':
+            self.add_to_database(pieces_sha256, ip, port)
         else:
-            self.data[pieces].append((ip,port))
-
-    def remove_client_from_data(self,pieces, ip, port):
-        try:
-            self.data[pieces]
-        except KeyError:
-            raise Exception("Esa llave no existe")
-        else:
-            self.data[pieces].remove((ip,port))
+            tracker_ip, tracker_port = self.find_successor(pieces_sha256).split(':')
+            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
+            proxy_tracker.add_to_database(pieces_sha256, ip, port)
 
 
 
 
-    
+tracker = Tracker("127.0.0.1", 6200)
 
-
-
-
-tr = Tracker('127.0.0.1', '8080')
-#tr.sart_server()
+daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
+ns = Pyro4.locateNS()
+uri = daemon.register(tracker)
+ns.register(f"tracker{tracker.ip}:{tracker.port}", uri)
+print(f"TRACKER {tracker.ip}:{tracker.port} STARTED")
+daemon.requestLoop()

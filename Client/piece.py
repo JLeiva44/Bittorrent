@@ -3,7 +3,7 @@ import math
 import time 
 import logging
 #import zmq
-from utils.disk_io import DiskIO
+from disk_io import DiskIO
 
 from subpiece import SubPiece, DEFAULT_SUBPIECE_SIZE, State
 
