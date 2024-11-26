@@ -4,8 +4,9 @@ import time
 import logging
 #import zmq
 from disk_io import DiskIO
+import bencoding
 
-from subpiece import SubPiece, DEFAULT_SUBPIECE_SIZE, State
+from Client.subpiece import SubPiece, DEFAULT_SUBPIECE_SIZE, State
 
 class Piece:
     def __init__(self, piece_index:int, piece_offset, piece_size:int, piece_hash :str) -> None:
@@ -63,7 +64,7 @@ class Piece:
         return data   
 
     def _valid_subpieces(self,raw_data):
-        hashed_piece_raw_data = hashlib.sha1(raw_data).digest() # hexdigest??
+        hashed_piece_raw_data = hashlib.sha1(raw_data).hexdigest() # hexdigest??
         if hashed_piece_raw_data == self.piece_hash:
             return True
 
