@@ -3,6 +3,7 @@ import time
 import threading
 from Client.client import Client  # Asegúrate de que este archivo esté en el mismo directorio
 from Tracker.tracker import Tracker  # Asegúrate de que este archivo esté en el mismo directorio
+from Client.torrent_utils import TorrentReader 
 
 def start_tracker(ip="127.0.0.1", port=6200):
     tracker = Tracker(ip, port)
@@ -31,23 +32,31 @@ def test_tracker_and_client():
 
     # Simular la subida de un archivo al tracker
     tracker_urls = ["127.0.0.1:6200"]
-    client.upload_file("/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo1.txt", tracker_urls)  # Cambia esto a un archivo real
+    file_1_path = "/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo1.txt"
+    client.upload_file(file_1_path, tracker_urls)  # Cambia esto a un archivo real
 
     # Obtener peers del tracker para verificar la funcionalidad
-    torrent_info = client.get_peers_from_tracker(client.get_torrent_info("/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo1.txt"))  # Cambia esto a un archivo real
-    print("Peers obtenidos del tracker:", torrent_info)
+    dottorrent_file1_path = "Client/torrent_files/archivo1.torrent"
+    tr = TorrentReader(dottorrent_file1_path)
+    torrent_info = tr.build_torrent_info()
+    peers = client.get_peers_from_tracker(torrent_info)
+    print("Peers obtenidos del tracker:", peers)
 
     # Simular otro cliente que se registre en el tracker
     another_client = start_client("127.0.0.1", 6202)
     
-    time.sleep(1)  # Esperar a que el segundo cliente esté listo
+    time.sleep(1)  # Esperar a que el segundo cliente esté listoget_torrent_in
     
     another_client.upload_file("/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo2.txt", tracker_urls)  # Cambia esto a otro archivo real
 
     time.sleep(1)  # Esperar a que se registre
     
     # Obtener peers nuevamente para verificar que ambos clientes están registrados
-    peers_after_registration = client.get_peers_from_tracker(client.get_torrent_info("/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo2.txt"))  # Cambia esto a un archivo real
+    dottorrent_file2_path = "Client/torrent_files/archivo2.torrent"
+    tr = TorrentReader(dottorrent_file2_path)
+    torrent_info = tr.build_torrent_info()
+    peers = client.get_peers_from_tracker(torrent_info)
+    peers_after_registration = client.get_peers_from_tracker(torrent_info)  # Cambia esto a un archivo real
     print("Peers después del registro:", peers_after_registration)
 
 if __name__ == "__main__":

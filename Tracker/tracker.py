@@ -15,11 +15,11 @@ class Tracker:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.address = "tcp://" + self.ip + ":" + self.port
+        self.address = "tcp://" + self.ip + ":" + str(self.port)
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
 
         self.context = zmq.Context()
-        self.socket = self.context(zmq.REP)
+        self.socket = self.context.socket(zmq.REP)
         self.socket.bind(self.address)
 
         self.database = {}
@@ -50,7 +50,7 @@ class Tracker:
         if action == "get_peers":
             return self.get_peers(message["pieces_sha1"])
         elif action == "add_to_database":
-            return self.add_to_database(message["pieces_sha256"], message["ip"], message["port"])
+            return self.add_to_database(message["pieces_sha1"], message["peer"][0], message["peer"][1]) # peer[o] = ip, peer[1] puerto
         elif action == "remove_from_database":
             return self.remove_from_database(message["pieces_sha1"], message["ip"], message["port"])
         elif action == "get_database":
@@ -66,10 +66,10 @@ class Tracker:
         
 
     def get_peers(self, pieces_sha1):
-        pieces_sha256 = sha256_hash(pieces_sha1)
+        #pieces_sha256 = sha256_hash(pieces_sha1)
         
-        if pieces_sha256 in self.database:
-            return {"peers": self.database[pieces_sha256]}
+        if pieces_sha1 in self.database:
+            return {"peers": self.database[pieces_sha1]}
         
         return {"peers": []} 
 
@@ -81,6 +81,7 @@ class Tracker:
             self.database[pieces_sha256].append((ip, port))
         
         print(f"Added {ip}:{port} to database for piece {pieces_sha256}")   
+        return {"reponse":f"Added {ip}:{port} to database for piece {pieces_sha256}"}
 
 
     def remove_from_database(self, pieces_sha1, ip, port):
