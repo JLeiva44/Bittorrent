@@ -1,7 +1,7 @@
-from torrent import TorrentMaker, Torrent
-from pieces_manager import PiecesManager
-from subpiece import State, DEFAULT_SUBPIECE_SIZE, SubPiece
-from bclient_logger import logger
+from Client.torrent import TorrentMaker, Torrent
+from Client.pieces_manager import PiecesManager
+from Client.subpiece import State, DEFAULT_SUBPIECE_SIZE, SubPiece
+from Client.bclient_logger import logger
 
 import os
 import zmq
@@ -29,7 +29,7 @@ class Client:
         self.socket = self.context.socket(zmq.REQ)
         self.server_socket = self.context.socket(zmq.REP)
 
-        threading.Thread(target=self.run_server, daemon=True).start() # Start Peer server thread
+        #threading.Thread(target=self.run_server, daemon=True).start() # Start Peer server thread
 
     def connect(self, ip, port):
         address = "tcp://" + ip + ":" + port
@@ -76,9 +76,9 @@ class Client:
         tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
         
         if remove:
-            request = {"action": "remove", "sha1": sha1, "peer": (self.ip, self.port)}
+            request = {"action": "remove_from_database", "sha1": sha1, "peer": (self.ip, self.port)}
         else:
-            request = {"action": "add", "sha1": sha1, "peer": (self.ip, self.port)}
+            request = {"action": "add_to_database", "sha1": sha1, "peer": (self.ip, self.port)}
 
         tracker_socket.send_json(request)
         response = tracker_socket.recv_json()
