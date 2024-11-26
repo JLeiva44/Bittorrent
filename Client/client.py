@@ -50,7 +50,7 @@ class Client:
             action_type = message.get("action")
 
             if action_type == "get_bit_field":
-                response = self.get_bit_field_of()
+                response = self.get_bit_field_of(message['info'])
                 self.server_socket.send_json(response)
 
             elif action_type == "get_block": 
@@ -101,8 +101,8 @@ class Client:
         
         return peers
     
-    def get_bit_field_of(self):
-        piece_manager = PieceManager(dict(), 'client_files')
+    def get_bit_field_of(self, info):
+        piece_manager = PieceManager(info, 'Client/downloaded_files')
         return {"bitfield": piece_manager.bitfield}
     # def register(self):
     #     message = {
@@ -131,3 +131,62 @@ class Client:
                 piece_manager_inst.clean_memory(rarest_piece)
                 self.download_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
                 break
+
+    def find_rarest_piece(self, peers, torrent_info: TorrentInfo, owned_pieces):
+        count_of_pieces = [0] * torrent_info.number_of_pieces
+        owners = [[] for _ in range(torrent_info.number_of_pieces)]
+        
+        for ip, port in peers:
+            proxy_socket = self.context.socket(zmq.REQ)
+            proxy_socket.connect(f"tcp://{ip}:{port}")
+            request = {
+                "action": "get_bit_field",
+                "info": dict(torrent_info.metainfo['info'])}
+            request['info'].pop('md5sum')
+            proxy_socket.send_json(request)
+            peer_bit_field = proxy_socket.recv_json().get('bitfield', [])
+            
+            for i in range(len(peer_bit_field)):
+                if peer_bit_field[i]:
+                    count_of_pieces[i] += 1
+                    owners[i].append((ip, port))
+        
+        rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        
+        while owned_pieces[rarest_piece]:
+            count_of_pieces[rarest_piece] = math.inf
+            rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        
+        return rarest_piece, owners[rarest_piece]
+    
+
+    
+        
+    def get_block_of_piece(self, info: dict, piece_index: int, block_offset: int):
+        piece_manager = PieceManager(info['info'], 'client_files')
+        return {"data": piece_manager.get_block_piece(piece_index, block_offset).data}   
+
+
+    def download_piece_from_peer(self, peer, torrent_info: TorrentInfo, piece_index: int,
+                              piece_manager: PieceManager):
+        try:
+            proxy_socket = self.context.socket(zmq.REQ)
+            proxy_socket.connect(f"tcp://{peer[0]}:{peer[1]}")
+            piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
+         
+            for i in range(int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))):
+                request = {
+                    "action": "get_block",
+                    "info": dict(torrent_info.metainfo['info']),
+                    "piece_index": piece_index,
+                    "block_offset": i * DEFAULT_Block_SIZE
+                }
+                proxy_socket.send_json(request)
+                received_block = proxy_socket.recv_json()
+
+                # Asegurar de que 'data' sea una cadena antes de decodificar
+                raw_data = base64.b64decode(received_block['data']['data'].encode('utf-8'))  # Decodifica a bytes
+                piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
+        except Exception as e:
+            logger.error(f"Error downloading piece {piece_index} from {peer}: {e}")
+    
