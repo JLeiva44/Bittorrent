@@ -3,7 +3,7 @@ import math
 import time 
 import logging
 #import zmq
-from disk_io import DiskIO
+from Client.disk_io import DiskIO
 
 
 from Client.block import Block, DEFAULT_Block_SIZE, State

@@ -1,6 +1,6 @@
-from Client.torrent import TorrentMaker, Torrent
-from Client.pieces_manager import PiecesManager
-from Client.subpiece import State, DEFAULT_SUBPIECE_SIZE, SubPiece
+from Client.torrent_utils import TorrentCreator, TorrentInfo
+from Client.pieces_manager import PieceManager
+from Client.block import State, DEFAULT_Block_SIZE, Block
 from Client.bclient_logger import logger
 
 import os
@@ -36,8 +36,10 @@ class Client:
 
     def run_server(self):
         # El cliente actúa como servidor escuchando en un puerto aleatorio
-        self.server_socket.bind("tcp://*:5556")  # Puerto fijo para simplificar
-        print(f"Servidor de peer escuchando en tcp://*:5556")
+        #self.server_socket.bind("tcp://*:5556")  # Puerto fijo para simplificar
+        address = "tcp://" + self.ip + ":" + str(self.port)
+        self.server_socket.bind(address)
+        print(f"Servidor de peer escuchando en " + address)
         
         while True:
             message = self.server_socket.recv_json()
@@ -59,10 +61,11 @@ class Client:
             self.server_socket.send_json({"status": "received"})
 
     def upload_file(self, path, tracker_urls, private=False, comments="unknown", source="unknown"):
-        torrent_maker = TorrentMaker(path, 1 << 18, private, tracker_urls, source)
+        torrent_maker = TorrentCreator(path, 1 << 18, private, tracker_urls,comments, source)
         #sha1_hash = torrent_maker.get_hash_pieces()
-        sha1_hash = torrent_maker.pieces
-        torrent_maker.create_file('torrent_files')
+        sha1_hash = torrent_maker.get_hash_pieces()
+        assert sha1_hash != ""
+        torrent_maker.create_dottorrent_file('Client/torrent_files')
         
         trackers = [tuple(url.split(':')) for url in tracker_urls]
         self.update_trackers(trackers, sha1_hash)
@@ -76,14 +79,31 @@ class Client:
         tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
         
         if remove:
-            request = {"action": "remove_from_database", "sha1": sha1, "peer": (self.ip, self.port)}
+            request = {"action": "remove_from_database", "pieces_sha1": sha1, "peer": (self.ip, self.port)}
         else:
-            request = {"action": "add_to_database", "sha1": sha1, "peer": (self.ip, self.port)}
+            request = {"action": "add_to_database", "pieces_sha1": sha1, "peer": (self.ip, self.port)}
 
         tracker_socket.send_json(request)
         response = tracker_socket.recv_json()
         print(f"Tracker response: {response}")
 
+    def get_peers_from_tracker(self, torrent_info):
+        peers = []
+        trackers = torrent_info.get_trackers()
+        
+        for tracker_ip, tracker_port in trackers:
+            tracker_socket = self.context.socket(zmq.REQ)
+            tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
+            request = {"action": "get_peers", "pieces_sha1": torrent_info.metainfo['info']['pieces']}
+            tracker_socket.send_json(request)
+            response = tracker_socket.recv_json()
+            peers.extend(response.get('peers', []))
+        
+        return peers
+    
+    def get_bit_field_of(self):
+        piece_manager = PieceManager(dict(), 'client_files')
+        return {"bitfield": piece_manager.bitfield}
     # def register(self):
     #     message = {
     #         "action": "register",
@@ -92,7 +112,7 @@ class Client:
     #     }
     #     print("Registrando peer...")
     #     self.socket.send_json(message)
-    #     response = self.socket.recv_json()
+    #     response = self.sock_fileset.recv_json()
     #     print("Respuesta del tracker: {}".format(response))
 
     
