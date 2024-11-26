@@ -1,5 +1,5 @@
 
-import Pyro4
+import zmq
 import threading
 import hashlib
 
@@ -12,45 +12,85 @@ def sha256_hash(s):
 
 
 class Tracker:
-    def __init__(self, ip, port) -> None:
+    def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.data = {}
-        #self._sart_server()
-        #threading.Thread(target=self._start_server, daemon=True).start()  # Start server thread
+        self.address = "tcp://" + self.ip + ":" + self.port
+        self.node_id = sha256_hash(self.ip + ':' + str(self.port))
 
-    def connect_to(self, ip, port, type_of_peer):
-        ns = Pyro4.locateNS()
-        # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
-        uri = ns.lookup(f"{type_of_peer}{ip}:{port}")
-        proxy = Pyro4.Proxy(uri=uri)
+        self.context = zmq.Context()
+        self.socket = self.context(zmq.REP)
+        self.socket.bind(self.address)
 
-        # try:
-        #     tracker_proxy._pyroConnection.ping()
-        #     print(f"Succefuly connection with the TRACKER at {tracker_ip}:{tracker_port}")
-        # except Pyro4.errors.CommunicationError:
-        #     print("TRACKER Unreachable")
+        self.database = {}
 
-        return proxy
+        threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
 
-    @Pyro4.expose
-    def add_to_trackers(self, pieces_sha1, ip, port):
-        pieces_sha256 = sha256_hash(pieces_sha1)
-        if self.successor == '':
-            self.add_to_database(pieces_sha256, ip, port)
+
+    def run(self):
+        print("Tracker corriendo en {}".format(self.socket.bind_to_random_port("tcp://*")))
+        while True:
+            # Esperar por un mensaje de un peer
+            message = self.socket.recv_json()
+            print("Mensaje recibido: {}".format(message))
+            # Respuesta
+            response = self.handle_request(message)
+            self.socket.send_json(response)
+
+
+            # # Procesar el mensaje
+            # if message['action'] == 'register':
+            #     self.register_peer(message['peer_id'], message['file_hash'])
+            # elif message['action'] == 'get_peers':
+            #     self.send_peers(message['file_hash'])   
+
+    def handle_request(self, message):
+        action = message.get("action")
+        
+        if action == "get_peers":
+            return self.get_peers(message["pieces_sha1"])
+        elif action == "add_to_database":
+            return self.add_to_database(message["pieces_sha256"], message["ip"], message["port"])
+        elif action == "remove_from_database":
+            return self.remove_from_database(message["pieces_sha1"], message["ip"], message["port"])
+        elif action == "get_database":
+            return self.get_database()
+        elif action == "get_node_id":
+            return {"node_id": self.node_id}
+        elif action == "set_successor":
+            return self.set_successor(message["node"])
+        elif action == "set_predecessor":
+            return self.set_predecessor(message["node"])
         else:
-            tracker_ip, tracker_port = self.find_successor(pieces_sha256).split(':')
-            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
-            proxy_tracker.add_to_database(pieces_sha256, ip, port)
+            return {"error": "Unknown action"}
+        
+
+    def get_peers(self, pieces_sha1):
+        pieces_sha256 = sha256_hash(pieces_sha1)
+        
+        if pieces_sha256 in self.database:
+            return {"peers": self.database[pieces_sha256]}
+        
+        return {"peers": []} 
+
+    def add_to_database(self, pieces_sha256, ip, port):
+        if pieces_sha256 not in self.database:
+            self.database[pieces_sha256] = []
+        
+        if (ip, port) not in self.database[pieces_sha256]:
+            self.database[pieces_sha256].append((ip, port))
+        
+        print(f"Added {ip}:{port} to database for piece {pieces_sha256}")   
+
+
+    def remove_from_database(self, pieces_sha1, ip, port):
+        pieces_sha256 = sha256_hash(pieces_sha1)
+        
+        if pieces_sha256 in self.database and (ip, port) in self.database[pieces_sha256]:
+            self.database[pieces_sha256].remove((ip, port))
+            print(f"Removed {ip}:{port} from database for piece {pieces_sha256}")   
 
 
 
-
-tracker = Tracker("127.0.0.1", 6200)
-
-daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
-ns = Pyro4.locateNS()
-uri = daemon.register(tracker)
-ns.register(f"tracker{tracker.ip}:{tracker.port}", uri)
-print(f"TRACKER {tracker.ip}:{tracker.port} STARTED")
-daemon.requestLoop()
+    def get_database(self):
+        return {"database": self.database}
