@@ -51,7 +51,7 @@ class TorrentMaker:
         # como la fecha, comments, created by ...   
         return bencoding.Encoder(metainfo).encode()     
     
-    def create_file(self, folder = '/home/jose/Documents/proyectos/Bittorrent/torrent_files'):
+    def create_file(self, folder = '/home/jose/Documents/proyectos/Bittorrent/Client/torrent_files'):
         """
         Creates a .torrent file
         """
