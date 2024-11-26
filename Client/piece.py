@@ -4,9 +4,9 @@ import time
 import logging
 #import zmq
 from disk_io import DiskIO
-import bencoding
 
-from Client.subpiece import SubPiece, DEFAULT_SUBPIECE_SIZE, State
+
+from Client.block import Block, DEFAULT_Block_SIZE, State
 
 class Piece:
     def __init__(self, piece_index:int, piece_offset, piece_size:int, piece_hash :str) -> None:
@@ -18,7 +18,7 @@ class Piece:
         self.is_full = False
         self.files = []
         self.raw_data:bytes = b''
-        self.number_of_subpieces:int = int(math.ceil(float(piece_size) / DEFAULT_SUBPIECE_SIZE))
+        self.number_of_subpieces:int = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
         self.subpieces : list[SubPiece] = self._init_subpieces()
 
 
@@ -31,39 +31,39 @@ class Piece:
         self.is_full = True
     
     @property
-    def have_all_subpieces(self):
+    def have_all_blocks(self):
         '''
-            If all subpieces of the piece succefully downloaded
+            If all blocks of the piece succefully downloaded
         '''
-        return all(sub.state == State.FULL for sub in self.subpieces) 
+        return all(sub.state == State.FULL for sub in self.blocks) 
 
-    def write_subpiece(self, offset, data):
-        index = offset// DEFAULT_SUBPIECE_SIZE
+    def write_block(self, offset, data):
+        index = offset// DEFAULT_Block_SIZE
 
-        if not self.is_full and not self.subpieces[index].state == State.FULL:
-            self.subpieces[index].data = data
-            self.subpieces[index].state = State.FULL
+        if not self.is_full and not self.blocks[index].state == State.FULL:
+            self.blocks[index].data = data
+            self.blocks[index].state = State.FULL
 
-        if self.have_all_subpieces:
-            self._merge_all_subpieces()  
+        if self.have_all_blocks:
+            self._merge_all_blocks()  
     
-    def _init_subpieces(self): # see this
+    def _init_blocks(self): # see this
         result  = []
-        for _ in range(self.number_of_subpieces -1):
-            result.append(SubPiece(subpiece_size=DEFAULT_SUBPIECE_SIZE))
+        for _ in range(self.number_of_blocks -1):
+            result.append(Block(block_size=DEFAULT_Block_SIZE))
 
-        result.append(SubPiece(subpiece_size= self.piece_size % DEFAULT_SUBPIECE_SIZE))
+        result.append(Block(subpiece_size= self.piece_size % DEFAULT_Block_SIZE))
         return result
 
-    def _merge_subpieces(self):
+    def _merge_blocks(self):
         data = b''
 
-        for subpiece in self.subpieces:
-            data += subpiece.data
+        for block in self.blocks:
+            data += block.data
 
         return data   
 
-    def _valid_subpieces(self,raw_data):
+    def _valid_blocks(self,raw_data):
         hashed_piece_raw_data = hashlib.sha1(raw_data).hexdigest() # hexdigest??
         if hashed_piece_raw_data == self.piece_hash:
             return True
@@ -72,75 +72,64 @@ class Piece:
         # logging.debug("{} : {}".format(hashed_piece_raw_data, self.piece_hash))
         return False
     
-    def _merge_all_subpieces(self):
-        raw_data = self._merge_subpieces()
-        if self._valid_subpieces(raw_data):
+    def _merge_all_blocks(self):
+        raw_data = self._merge_blocks()
+        if self._valid_blocks(raw_data):
             self.is_full = True
             self.raw_data = raw_data
             # logger. debug(....)
         else:
-            self.subpieces = self._init_subpieces()
+            self.blocks = self._init_blocks()
 
-    def _rebuild_subpieces(self):
-        for i in range(self.number_of_subpieces -1):
-            self.subpieces[i].data = self.raw_data[i * DEFAULT_SUBPIECE_SIZE: (i+1)* DEFAULT_SUBPIECE_SIZE]
-        self.subpieces[self.number_of_subpieces - 1].data = self. raw_data[(self.number_of_subpieces-1)* DEFAULT_SUBPIECE_SIZE]    
+    def _rebuild_blocks(self):
+        for i in range(self.number_of_blocks -1):
+            self.blocks[i].data = self.raw_data[i * DEFAULT_Block_SIZE: (i+1)* DEFAULT_Block_SIZE]
+        self.subpieces[self.number_of_subpieces - 1].data = self. raw_data[(self.number_of_subpieces-1)* DEFAULT_Block_SIZE]    
         
-    def get_subpiece(self, subpiece_offset):
-        subpiece_index = subpiece_offset // DEFAULT_SUBPIECE_SIZE
-        return self.subpieces[subpiece_index]
+    def get_block(self, block_offset):
+        block_index = block_offset // DEFAULT_Block_SIZE
+        return self.blocks[block_index]
     
     def load_from_disk(self, filename : str):
 
         piece_data = DiskIO.read_from_disk(filename, self.piece_offset, self.piece_size)
         self.raw_data = piece_data
-        self._rebuild_subpieces()
+        self._rebuild_blocks()
 
     def clean_memory(self):
         self.raw_data = b''    
 
-    def get_empty_subpiece(self):
+    def get_empty_block(self):
         if self.is_completed:
             return None
         
-        for index, block in enumerate(self.subpieces):
+        for index, block in enumerate(self.blocks):
             if block.state == State.FREE:
-                self.subpieces[index].state = State.PENDING
-                return index * DEFAULT_SUBPIECE_SIZE, self.subpieces[index].subpiece_size
+                self.blocks[index].state = State.PENDING
+                return index * DEFAULT_Block_SIZE, self.blocks[index].block_size
         
         return None     
     
-    def all_subpieces_full(self):
-        for subpiece in self.subpieces:
-            if subpiece.state == State.FREE or subpiece.state == State.PENDING:
+    def all_blocks_full(self):
+        for block in self.blocks:
+            if block.state == State.FREE or block.state == State.PENDING:
                 return False
         return True
 
 
-    # def set_subpiece(self, offset, data):
-    #     index = int(offset/DEFAULT_SUBPIECE_SIZE)
+    # def set_block(self, offset, data):
+    #     index = int(offset/DEFAULT_block_SIZE)
 
-    #     if not self.is_full and not self.subpieces[index].state == State.FULL:
-    #         self.subpieces[index].data = data
-    #         self.subpieces[index].state = State.FULL        
+    #     if not self.is_full and not self.blocks[index].state == State.FULL:
+    #         self.blocks[index].data = data
+    #         self.blocks[index].state = State.FULL        
 
-    def update_subpiece_status(self): # if block is pending for too long: set it free
-        for i, subpiece in enumerate(self.subpieces):
-            if subpiece.state == State.PENDING and (time.time() - subpiece.last_seen)>5:
-                self.subpieces[i] = SubPiece()
+    def update_block_status(self): # if block is pending for too long: set it free
+        for i, block in enumerate(self.blocks):
+            if block.state == State.PENDING and (time.time() - block.last_seen)>5:
+                self.blocks[i] = Block()
 
    
    
 
     
-    
-     
-   
-
-    
-        
-   
-
-
-print("sdkjbfdjbf")
-
