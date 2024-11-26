@@ -18,8 +18,8 @@ class Piece:
         self.is_full = False
         self.files = []
         self.raw_data:bytes = b''
-        self.number_of_subpieces:int = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
-        self.subpieces : list[SubPiece] = self._init_subpieces()
+        self.number_of_blocks:int = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
+        self.blocks : list[Block] = self._init_blocks()
 
 
     @property
@@ -52,7 +52,7 @@ class Piece:
         for _ in range(self.number_of_blocks -1):
             result.append(Block(block_size=DEFAULT_Block_SIZE))
 
-        result.append(Block(subpiece_size= self.piece_size % DEFAULT_Block_SIZE))
+        result.append(Block(block_size= self.piece_size % DEFAULT_Block_SIZE))
         return result
 
     def _merge_blocks(self):
@@ -84,7 +84,7 @@ class Piece:
     def _rebuild_blocks(self):
         for i in range(self.number_of_blocks -1):
             self.blocks[i].data = self.raw_data[i * DEFAULT_Block_SIZE: (i+1)* DEFAULT_Block_SIZE]
-        self.subpieces[self.number_of_subpieces - 1].data = self. raw_data[(self.number_of_subpieces-1)* DEFAULT_Block_SIZE]    
+        self.blocks[self.number_of_blocks - 1].data = self. raw_data[(self.number_of_blocks-1)* DEFAULT_Block_SIZE]    
         
     def get_block(self, block_offset):
         block_index = block_offset // DEFAULT_Block_SIZE
