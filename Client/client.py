@@ -1,4 +1,4 @@
-from Client.torrent_utils import TorrentCreator, TorrentInfo
+from Client.torrent_utils import TorrentCreator, TorrentInfo, TorrentReader
 from Client.pieces_manager import PieceManager
 from Client.block import State, DEFAULT_Block_SIZE, Block
 from Client.bclient_logger import logger
@@ -115,4 +115,19 @@ class Client:
     #     response = self.sock_fileset.recv_json()
     #     print("Respuesta del tracker: {}".format(response))
 
-    
+    def download_file(self, dottorrent_file_path, save_at='Client/client_files'):
+        tr = TorrentReader(dottorrent_file_path)
+        info = tr.build_torrent_info()
+        peers = self.get_peers_from_tracker(info)
+        piece_manager_inst = PieceManager(info.metainfo['info'], save_at)
+
+        self.update_trackers(info.get_trackers(), info.dottorrent_pieces)
+
+        while not piece_manager_inst.completed:
+            rarest_piece, owners = self.find_rarest_piece(peers, info, piece_manager_inst.bitfield)
+            while owners:
+                peer_for_download = random.choice(owners)
+                owners.remove(peer_for_download)
+                piece_manager_inst.clean_memory(rarest_piece)
+                self.download_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+                break
