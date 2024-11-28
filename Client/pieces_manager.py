@@ -81,14 +81,10 @@ class PieceManager:
 
     def __check_local_pieces(self):
         path = self.filename
-        print('debug on check_local_pieces')
-        print(path)
         if os.path.exists(path):
-            print("el path existia")
             for piece_index in range(self.number_of_pieces):
                 with open(path, 'rb') as f:
                     chunk = f.read(self.piece_size)
-                    print('este es el chunk ',chunk)
                     while(chunk):
                         sha1chunk = hashlib.sha1(chunk).hexdigest()
                         print('este es el sha1', sha1chunk)
