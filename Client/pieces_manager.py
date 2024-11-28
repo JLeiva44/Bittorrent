@@ -87,9 +87,9 @@ class PieceManager:
                     chunk = f.read(self.piece_size)
                     while(chunk):
                         sha1chunk = hashlib.sha1(chunk).hexdigest()
-                        print('este es el sha1', sha1chunk)
+                        #print('este es el sha1', sha1chunk)
                         piece: 'Piece' = self.pieces[piece_index]
-                        print('este es el sha1 de la pieza segun la metainfo', piece.piece_hash)
+                        #print('este es el sha1 de la pieza segun la metainfo', piece.piece_hash)
                         if sha1chunk == piece.piece_hash:  # This piece is already written in the file
                             self.bitfield[piece_index] = True
                             piece.is_completed = True

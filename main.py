@@ -110,4 +110,4 @@ def test_download():
         logger.error(f"Error durante la descarga: {e}")
 
 if __name__ == "__main__":
-    test_download()
+    test_tracker_and_client()

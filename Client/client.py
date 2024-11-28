@@ -29,7 +29,7 @@ class Client:
         self.context = zmq.Context()
         self.server_socket = self.context.socket(zmq.REP)
         self.tracker_sockets = {}
-        threading.Thread(target=self.run_server, daemon=True).start() # Start Peer server thread
+        #threading.Thread(target=self.run_server, daemon=True).start() # Start Peer server thread
 
 
 
@@ -41,6 +41,7 @@ class Client:
             try:
                 message = self.server_socket.recv_json()
                 action_type = message.get("action")
+                logger.debug(f"El servidor (PEER) {self.ip}:{self.port} recibio el mnesaje {message}")
                 
                 if action_type == "get_bit_field":
                     response = self.get_bit_field_of(message['info'])
@@ -76,6 +77,7 @@ class Client:
             self.connect_to_tracker(tracker_ip, tracker_port, sha1, remove)    
 
     def connect_to_tracker(self, tracker_ip, tracker_port, sha1, remove):
+        logger.debug(f"METHOD: connect_to_Tracker")
         tracker_socket = self.context.socket(zmq.REQ)
         tracker_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
         tracker_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
@@ -89,26 +91,20 @@ class Client:
             }
             tracker_socket.send_json(request)
             response = tracker_socket.recv_json()
-            print(f"Tracker response: {response}")
+            logger.debug(f"Se Conecto el PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
+            logger.debug(f"Tracker response: {response}")
 
         except zmq.ZMQError as e:
             logger.error(f"ZMQError connecting to tracker {tracker_ip}:{tracker_port} - {e}")
         
         finally:
             tracker_socket.close()
+            logger.debug("se cerro la conexion con el tracker")
 
-        # tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
         
-        # if remove:
-        #     request = {"action": "remove_from_database", "pieces_sha1": sha1, "peer": (self.ip, self.port)}
-        # else:
-        #     request = {"action": "add_to_database", "pieces_sha1": sha1, "peer": (self.ip, self.port)}
-
-        # tracker_socket.send_json(request)
-        # response = tracker_socket.recv_json()
-        # print(f"Tracker response: {response}")
 
     def get_peers_from_tracker(self, torrent_info):
+        logger.debug(f"METHOD: get_peers_from_Tracker")
         peers = []
         trackers = torrent_info.get_trackers()
         
@@ -123,12 +119,15 @@ class Client:
                 tracker_socket.send_json(request)
                 response = tracker_socket.recv_json()
                 peers.extend(response.get('peers', []))
+                logger.debug(f"Se Conecto el PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
+                logger.debug(f"Tracker response: {response}")
 
             except zmq.ZMQError as e:
                 logger.error(f"ZMQError connecting to {tracker_ip}:{tracker_port} - {e}")
 
             finally:
                 tracker_socket.close()
+                logger.debug("se cerro la conexion con el tracker")
 
         return peers
 
@@ -155,6 +154,7 @@ class Client:
     #     print("Respuesta del tracker: {}".format(response))
 
     def download_file(self, dottorrent_file_path, save_at):
+        logger.debug(f"METHOD: download_file")
         tr = TorrentReader(dottorrent_file_path)
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
@@ -172,6 +172,7 @@ class Client:
                 break
 
     def find_rarest_piece(self, peers, torrent_info: TorrentInfo, owned_pieces):
+        logger.debug(f"METHOD: find_rarest_piece")
         count_of_pieces = [0] * torrent_info.number_of_pieces
         owners = [[] for _ in range(torrent_info.number_of_pieces)]
         
