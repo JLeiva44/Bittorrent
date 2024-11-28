@@ -25,7 +25,8 @@ class Tracker:
 
         self.database = {}
 
-        #threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
+        
+        threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
 
 
     def run(self):
