@@ -187,7 +187,10 @@ class Client:
                 
                 for attempt in range(max_retries):
                     if self.is_socket_connected(proxy_socket):
+                        logger.warning(f"Server at {ip}:{port} is not alive")
                         break
+                    else : 
+                        logger.warning(f"Server at {ip}:{port} is not alive")
                     time.sleep(0.1)  # Esperar antes del siguiente intento
                 
                 else:
@@ -358,6 +361,18 @@ class Client:
             return selected_piece[2], selected_piece[:2]  
 
         return None, None 
+    
+    def is_server_alive(self,socket):
+      try:
+          socket.send_json({"action": "ping"})
+          response=socket.recv_json(flags=zmq.NOBLOCK)  
+          return True
+      except zmq.Again:
+          logger.warning(f"Socket not ready for {socket} - retrying...")
+          return False
+      except zmq.ZMQError as e:
+          logger.error(f"ZMQError occurred: {e}")
+          return False
     
     def is_socket_connected(self, socket):
         try:

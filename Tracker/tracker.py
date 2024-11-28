@@ -1,6 +1,7 @@
 
 import zmq
 import threading
+from Client.bclient_logger import logger
 import hashlib
 
 HOST = '127.0.0.1'
@@ -28,21 +29,21 @@ class Tracker:
 
 
     def run(self):
-        print("Tracker corriendo en {}".format(self.socket.bind_to_random_port("tcp://*")))
+        logger.debug(f"Tracker corriendo en {self.address}")
         while True:
-            # Esperar por un mensaje de un peer
-            message = self.socket.recv_json()
-            print("Mensaje recibido: {}".format(message))
-            # Respuesta
-            response = self.handle_request(message)
-            self.socket.send_json(response)
+            try:
+                # Esperar por un mensaje de un peer
+                message = self.socket.recv_json()
+                print(f"Mensaje recibido: {message}")
+                
+                # Respuesta
+                response = self.handle_request(message)
+                self.socket.send_json(response)
 
-
-            # # Procesar el mensaje
-            # if message['action'] == 'register':
-            #     self.register_peer(message['peer_id'], message['file_hash'])
-            # elif message['action'] == 'get_peers':
-            #     self.send_peers(message['file_hash'])   
+            except zmq.ZMQError as e:
+                print(f"ZMQError occurred: {e}")
+            except Exception as e:
+                print(f"An error occurred in the tracker: {e}") 
 
     def handle_request(self, message):
         action = message.get("action")
@@ -80,7 +81,7 @@ class Tracker:
         if (ip, port) not in self.database[pieces_sha256]:
             self.database[pieces_sha256].append((ip, port))
         
-        print(f"Added {ip}:{port} to database for piece {pieces_sha256}")   
+        logger.debug(f"Added {ip}:{port} to database for piece {pieces_sha256}")   
         return {"reponse":f"Added {ip}:{port} to database for piece {pieces_sha256}"}
 
 
@@ -89,7 +90,7 @@ class Tracker:
         
         if pieces_sha256 in self.database and (ip, port) in self.database[pieces_sha256]:
             self.database[pieces_sha256].remove((ip, port))
-            print(f"Removed {ip}:{port} from database for piece {pieces_sha256}")   
+            logger.debug(f"Removed {ip}:{port} from database for piece {pieces_sha256}")   
 
 
 
