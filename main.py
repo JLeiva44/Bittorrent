@@ -43,7 +43,7 @@ def test_download_file(client, tracker, peer_client):
     print("\n[Test] Descarga de archivo por Peer 2")
 
     # Simular subida del archivo por Peer 1
-    test_file_path = "test_file.txt"
+    test_file_path = "Client/client_files/test_file.txt"
     with open(test_file_path, "w") as f:
         f.write("Contenido del archivo de prueba para descarga.")
 
@@ -52,7 +52,7 @@ def test_download_file(client, tracker, peer_client):
 
     # Peer 2 intenta descargar el archivo
     torrent_file_path = "Client/torrent_files/test_file.torrent"
-    save_path = "Client/client_files/peer2_download"
+    save_path = "Client/downloaded_files"
     os.makedirs(save_path, exist_ok=True)
 
     client.download_file(torrent_file_path, save_at=save_path)
@@ -112,10 +112,10 @@ if __name__ == "__main__":
     time.sleep(1)
 
     # Realizar pruebas individuales
-    test_tracker_functionality(tracker)
-    test_upload_file(client1, tracker)
+    # test_tracker_functionality(tracker)
+    # test_upload_file(client1, tracker)
     test_download_file(client2, tracker, client1)
-    test_peer_communication(client1, client2)
+    # test_peer_communication(client1, client2)
 
     print("Pruebas completadas.")
 

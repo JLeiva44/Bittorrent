@@ -19,6 +19,7 @@ class Piece:
         self.files = []
         self.raw_data:bytes = b''
         self.number_of_blocks:int = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
+        self.is_completed = False
         self.blocks : list[Block] = self._init_blocks()
 
 
@@ -82,10 +83,13 @@ class Piece:
             self.blocks = self._init_blocks()
 
     def _rebuild_blocks(self):
+        a = type(self.raw_data)
         for i in range(self.number_of_blocks -1):
+            self.blocks[i] = Block(state=State.FREE, data=b'')  # data debe ser bytes
             self.blocks[i].data = self.raw_data[i * DEFAULT_Block_SIZE: (i+1)* DEFAULT_Block_SIZE]
-        self.blocks[self.number_of_blocks - 1].data = self. raw_data[(self.number_of_blocks-1)* DEFAULT_Block_SIZE]    
-        
+        self.blocks[self.number_of_blocks - 1].data = self. raw_data[(self.number_of_blocks-1)* DEFAULT_Block_SIZE:]     
+        #espacio
+        a = 5
     def get_block(self, block_offset):
         block_index = block_offset // DEFAULT_Block_SIZE
         return self.blocks[block_index]
