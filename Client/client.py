@@ -153,7 +153,7 @@ class Client:
         
         for tracker_ip, tracker_port in trackers:
             request = {"action": "get_peers", "pieces_sha1": torrent_info.metainfo['info']['pieces']}
-            response = self._send_data(self.context,request,tracker_ip,tracker_port)
+            response = self._send_data(request,tracker_ip,tracker_port)
 
             if response:
                 peers.extend(response.get('peers', []))
@@ -166,8 +166,20 @@ class Client:
 
     
     def get_bit_field_of(self, info):
-        piece_manager = PieceManager(info, 'Client/client_files')
-        return {"bitfield": piece_manager.bitfield}
+        try:
+            # Validar que la información necesaria esté presente
+            if not info or 'pieces' not in info or 'piece length' not in info:
+                logger.error("Invalid torrent info provided for bitfield.")
+                return {"error": "Invalid torrent info"}
+
+            piece_manager = PieceManager(info, 'Client/client_files')
+            return {"bitfield": piece_manager.bitfield}
+        except Exception as e:
+            logger.error(f"Error generating bitfield: {e}")
+            return {"error": "Error generating bitfield"}
+
+        # piece_manager = PieceManager(info, 'Client/client_files')
+        # return {"bitfield": piece_manager.bitfield}
 
     def download_file(self, dottorrent_file_path, save_at):
         logger.debug(f"METHOD: download_file")
@@ -202,7 +214,7 @@ class Client:
                     "info": dict(torrent_info.metainfo['info'])
                 }
             request['info'].pop('md5sum')
-            response = self._send_data(self.context,request,ip,port)
+            response = self._send_data(request,ip,port)
             
             if response:
                 peer_bit_field = response.get('bitfield', [])
@@ -215,53 +227,74 @@ class Client:
                 logger.warning(f"No response from peer {ip}:{port} for bit field.")
 
         # encuentra la pieza mas rara        
-        rarest_piece = count_of_pieces.index(min(count_of_pieces))
-        
-        while owned_pieces[rarest_piece]:
-            count_of_pieces[rarest_piece] = math.inf
-            rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        rarest_piece = -1
+        for i, count in enumerate(count_of_pieces):
+            if not owned_pieces[i] and count > 0:
+                if rarest_piece == -1 or count < count_of_pieces[rarest_piece]:
+                    rarest_piece = i
 
-        return rarest_piece, owners[rarest_piece]
+        return rarest_piece, owners[rarest_piece] if rarest_piece != -1 else []
+
+        # rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        
+        # while owned_pieces[rarest_piece]:
+        #     count_of_pieces[rarest_piece] = math.inf
+        #     rarest_piece = count_of_pieces.index(min(count_of_pieces))
+
+        # return rarest_piece, owners[rarest_piece]
 
     
         
     def get_block_of_piece(self, info: dict, piece_index: int, block_offset: int):
-        piece_manager = PieceManager(info, 'Client/client_files')
-        block = piece_manager.get_block_piece(piece_index, block_offset)
-        return {"data": block.data}
-        # piece_manager = PieceManager(info['info'], 'Client/client_files')
-        # return {"data": piece_manager.get_block_piece(piece_index, block_offset).data}   
+        try:
+            piece_manager = PieceManager(info, 'Client/client_files')
+            block = piece_manager.get_block_piece(piece_index, block_offset)
+
+            # Asegurarse de que los datos estén codificados en Base64
+            return {"data": base64.b64encode(block.data).decode('utf-8')}
+        except Exception as e:
+            logger.error(f"Error retrieving block {block_offset} of piece {piece_index}: {e}")
+            return {"error": "Failed to retrieve block"}
+            # piece_manager = PieceManager(info['info'], 'Client/client_files')
+            # return {"data": piece_manager.get_block_piece(piece_index, block_offset).data}   
 
 
     def download_piece_from_peer(self, peer, torrent_info: TorrentInfo, piece_index: int,
                               piece_manager: PieceManager):
         
-        piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
-         
-        for i in range(int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))):
-            request = {
-                "action": "get_block",
-                "info": dict(torrent_info.metainfo['info']),
-                "piece_index": piece_index,
-                "block_offset": i * DEFAULT_Block_SIZE
-            }
-            request['info'].pop('md5sum')
+        try:
+            piece_size = (
+                torrent_info.file_size % torrent_info.piece_size
+                if piece_index == piece_manager.number_of_pieces - 1
+                else torrent_info.piece_size
+            )
+            
+            num_blocks = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
 
-            response = self._send_data(request,peer[0], peer[1])
+            for i in range(num_blocks):
+                request = {
+                    "action": "get_block",
+                    "info": dict(torrent_info.metainfo['info']),
+                    "piece_index": piece_index,
+                    "block_offset": i * DEFAULT_Block_SIZE
+                }
+                request['info'].pop('md5sum', None)
 
-            if response and 'data' in response:
-                try:
-                    # Decodifica los datos recibidos en base64
-                    raw_data = base64.b64decode(response['data'].encode('utf-8'))
-                    piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
-                except Exception as e:
-                    logger.error(f"Error decoding or storing block {i} of piece {piece_index} from {peer}: {e}")
-                
-            # # Asegurar de que 'data' sea una cadena antes de decodificar
-            # raw_data = base64.b64decode(received_block['data']['data'].encode('utf-8'))  # Decodifica a bytes
-            # piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
-        else:
-            logger.warning(f"Failed to download block {i} of piece {piece_index} from {peer}")
+                response = self._send_data(request, peer[0], peer[1])
+
+                if response and 'data' in response:
+                    try:
+                        # Decodificar el bloque recibido
+                        raw_data = base64.b64decode(response['data'].encode('utf-8'))
+                        piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
+                        logger.debug(f"Successfully downloaded block {i} of piece {piece_index} from {peer}")
+                    except Exception as e:
+                        logger.error(f"Error decoding/storing block {i} of piece {piece_index} from {peer}: {e}")
+                else:
+                    logger.warning(f"Failed to receive block {i} of piece {piece_index} from {peer}")
+
+        except Exception as e:
+            logger.error(f"Error downloading piece {piece_index} from {peer}: {e}")
 
 
     def find_random_piece(self, peers, torrent_info: TorrentInfo,
@@ -303,26 +336,4 @@ class Client:
 
         return None, None 
     
-    def is_server_alive(self,socket):
-      try:
-          socket.send_json({"action": "ping"})
-          response=socket.recv_json(flags=zmq.NOBLOCK)  
-          return True
-      except zmq.Again:
-          logger.warning(f"Socket not ready for {socket} - retrying...")
-          return False
-      except zmq.ZMQError as e:
-          logger.error(f"ZMQError occurred: {e}")
-          return False
     
-    def is_socket_connected(self, socket):
-        try:
-            socket.send_json({"action": "ping"})
-            response = socket.recv_json(flags=zmq.NOBLOCK)  # Non-blocking receive
-            return True
-        except zmq.Again:
-            logger.warning(f"Socket not ready for {socket} - retrying...")
-            return False
-        except zmq.ZMQError as e:
-            logger.error(f"ZMQError occurred: {e}")
-            return False
