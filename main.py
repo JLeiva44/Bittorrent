@@ -64,8 +64,8 @@ def test_download_file(client, tracker, peer_client):
         print("Error: El archivo no fue descargado correctamente.")
 
     # Limpieza
-    os.remove(test_file_path)
-    os.rmdir(save_path)
+    #os.remove(test_file_path)
+    #os.rmdir(save_path)
 
 
 def test_tracker_functionality(tracker):
