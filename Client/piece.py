@@ -46,6 +46,7 @@ class Piece:
             self.blocks[index].state = State.FULL
 
         if self.have_all_blocks:
+            self.is_completed = True
             self._merge_all_blocks()  
     
     def _init_blocks(self): # see this

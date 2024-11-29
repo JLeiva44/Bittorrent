@@ -105,9 +105,10 @@ class PieceManager:
             piece.write_block(block_offset, raw_data)
     
             if piece.is_completed:
-                self.bitfield[piece_index] = True
-                self.completed_pieces += 1
-                DiskIO.write_to_disk(self.filename, piece.piece_offset, piece.raw_data)
+                if not self.bitfield[piece_index]:
+                    self.bitfield[piece_index] = True
+                    self.completed_pieces += 1
+                    DiskIO.write_to_disk(self.filename, piece.piece_offset, piece.raw_data)
 
     def get_block_piece(self, piece_index, block_offset):
         piece: Piece = self.pieces[piece_index]
