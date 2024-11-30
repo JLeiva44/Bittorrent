@@ -4,6 +4,7 @@ import threading
 from Client.bclient_logger import logger
 import hashlib
 import time
+from chord import ChordNode
 HOST = '127.0.0.1'
 PORT1 = '8080'
 PORT2 = '8001'
@@ -13,12 +14,14 @@ def sha256_hash(s):
 
 
 class Tracker:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, chord_m = 8):
         self.ip = ip
         self.port = port
         self.address = "tcp://" + self.ip + ":" + str(self.port)
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
 
+        # nodo Chord 
+        self.chord_node  = ChordNode(ip,port,m=chord_m)
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(self.address)
@@ -108,31 +111,45 @@ class Tracker:
         
 
     def get_peers(self, pieces_sha1):
-        #pieces_sha256 = sha256_hash(pieces_sha1)
-        
-        # if pieces_sha1 in self.database:
-        #     return {"peers": self.database[pieces_sha1]}
-        
-        # return {"peers": []} 
         if not pieces_sha1:
             return {"error": "Se requiere el hash de la pieza."}
 
-        with self.lock:
-            peers = self.database.get(pieces_sha1, [])
+        # Buscar el nodo correspondiente en el anillo Chord para la pieza
+        #node_ref = self.chord_node.ref.find_succ(sha256_hash(pieces_sha1))
+        
+        node_ref = self.chord_node.ref.find_succ(pieces_sha1) # ver despues si no hay que pasarlo x el sha256
+
+
+        peers = node_ref.retrieve_key(pieces_sha1)
+        logger.debug(f"Getting Peers for piece {pieces_sha1}")
+        logger.debug(f"Peers {peers}")
         return {"peers": peers}
+        
+        # Version Centralizada
+        # with self.lock:
+        #     peers = self.database.get(pieces_sha1, [])
+        # return {"peers": peers}
 
     def add_to_database(self, pieces_sha1, ip, port):
         if not pieces_sha1 or not ip or not port:
             return {"error": "Datos incompletos para agregar al tracker."}
 
-        with self.lock:
-            if pieces_sha1 not in self.database:
-                self.database[pieces_sha1] = []
-            if (ip, port) not in self.database[pieces_sha1]:
-                self.database[pieces_sha1].append((ip, port))
+        # Obtener el nodo correspondiente en el anillo Chord para la pieza
+        #node_ref = self.chord_node.find_succ(sha256_hash(pieces_sha1)) # Ver si es asi o solo con sha1
+        node_ref = self.chord_node.find_succ(pieces_sha1) # Ver si es asi o solo con sha1
 
-        logger.debug(f"Agregado {ip}:{port} al tracker para {pieces_sha1}")
-        return {"response": f"Agregado {ip}:{port} para {pieces_sha1}"}
+        # Almacenar los datos
+        addres = f"{ip}:{port}"
+        node_ref.store_key(pieces_sha1,addres)
+        logger.debug(f"Added {ip}:{port} to Node: {ip}:{port} for piece {pieces_sha1}")    
+        # with self.lock:
+        #     if pieces_sha1 not in self.database:
+        #         self.database[pieces_sha1] = []
+        #     if (ip, port) not in self.database[pieces_sha1]:
+        #         self.database[pieces_sha1].append((ip, port))
+
+        # logger.debug(f"Agregado {ip}:{port} al tracker para {pieces_sha1}")
+        # return {"response": f"Agregado {ip}:{port} para {pieces_sha1}"}
         # if pieces_sha256 not in self.database:
         #     self.database[pieces_sha256] = []
         
@@ -163,3 +180,18 @@ class Tracker:
     def get_database(self):
         with self.lock:
             return {"database": self.database}
+        
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Ejecutar el Tracker.")
+    parser.add_argument("--ip", type=str, default="0.0.0.0", help="IP en la que escucha el Tracker (por defecto: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8080, help="Puerto en el que escucha el Tracker (por defecto: 8080)")
+    args = parser.parse_args()
+
+    print(f"Inicializando el Tracker en {args.ip}:{args.port}")
+    
+    # Instancia del Tracker
+    tracker = Tracker(ip=args.ip, port=args.port)
+    tracker.run()
