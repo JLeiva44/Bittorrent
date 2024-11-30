@@ -44,7 +44,7 @@ def test_download_file(client, tracker, peer_client):
 
     # Simular subida del archivo por Peer 1
     #test_file_path = "Client/client_files/test_file.txt"
-    test_file_path = "Client/client_files/archivo1.txt"
+    test_file_path = "Client/client_files/archivo2.txt"
     # with open(test_file_path, "w") as f:
     #     f.write("Contenido del archivo de prueba para descarga.")
 
@@ -52,13 +52,13 @@ def test_download_file(client, tracker, peer_client):
     peer_client.upload_file(test_file_path, tracker_urls=tracker_url)
 
     # Peer 2 intenta descargar el archivo
-    torrent_file_path = "Client/torrent_files/archivo1.torrent"
+    torrent_file_path = "Client/torrent_files/archivo2.torrent"
     save_path = "Client/downloaded_files"
     os.makedirs(save_path, exist_ok=True)
 
     client.download_file(torrent_file_path, save_at=save_path)
 
-    downloaded_file = os.path.join(save_path, "archivo1.txt")
+    downloaded_file = os.path.join(save_path, "archivo2.txt")
     if os.path.exists(downloaded_file):
         print(f"Descarga exitosa. Archivo descargado en: {downloaded_file}")
     else:
