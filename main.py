@@ -3,6 +3,9 @@ import time
 import os
 from Client.client import Client
 from Tracker.tracker import Tracker
+from Tracker.chord import ChordNode, ChordNodeReference
+def getShaRepr(data: str):
+    return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
 def setup_environment():
     """
@@ -103,162 +106,60 @@ def test_peer_communication(client1, client2):
     client2.request_test(ip="127.0.0.1", port=8001)
 
 
+def test_chord():
+    # Crear tres nodos con IPs locales
+    ip1 = "127.0.0.1"
+    ip2 = "127.0.0.2"
+    ip3 = "127.0.0.3"
+
+    print("Creando nodo 1...")
+    node1 = ChordNode(ip1, port=8001)
+
+    # Esperar unos segundos para que el nodo 1 inicialice
+    time.sleep(2)
+
+    print("Creando nodo 2 y uniéndolo al nodo 1...")
+    node2 = ChordNode(ip2, port=8002)
+    node2.join(node1.ref)  # Nodo 2 se une al anillo utilizando Nodo 1
+
+    # Esperar unos segundos para que se complete el proceso de unión
+    time.sleep(2)
+
+    print("Creando nodo 3 y uniéndolo al nodo 1...")
+    node3 = ChordNode(ip3, port=8003)
+    node3.join(node1.ref)  # Nodo 3 se une al anillo utilizando Nodo 1
+
+    # Esperar unos segundos para que se estabilice el anillo
+    time.sleep(5)
+
+    # Imprimir información sobre los nodos
+    print(f"Nodo 1: Sucesor -> {node1.succ}, Predecesor -> {node1.pred}")
+    print(f"Nodo 2: Sucesor -> {node2.succ}, Predecesor -> {node2.pred}")
+    print(f"Nodo 3: Sucesor -> {node3.succ}, Predecesor -> {node3.pred}")
+
+    # Probar búsqueda de claves en el anillo
+    key = "test-key"
+    hashed_key = getShaRepr(key)
+    print(f"Búsqueda del sucesor de la clave '{key}' (hash: {hashed_key})...")
+    successor = node1.find_succ(hashed_key)
+    print(f"Sucesor encontrado: {successor}")
+
+
 if __name__ == "__main__":
     print("Iniciando pruebas de Bittorrent Client...")
 
     # Configurar el entorno de prueba
-    tracker, client1, client2 = setup_environment()
+    # tracker, client1, client2 = setup_environment()
 
-    # Dar tiempo para que los servidores se inicien
-    time.sleep(1)
+    # # Dar tiempo para que los servidores se inicien
+    # time.sleep(1)
 
-    # Realizar pruebas individuales
-    # test_tracker_functionality(tracker)
-    # test_upload_file(client1, tracker)
-    test_download_file(client2, tracker, client1)
-    # test_peer_communication(client1, client2)
+    # # Realizar pruebas individuales
+    # # test_tracker_functionality(tracker)
+    # # test_upload_file(client1, tracker)
+    # test_download_file(client2, tracker, client1)
+    # # test_peer_communication(client1, client2)
 
-    print("Pruebas completadas.")
+    # print("Pruebas completadas.")
 
-
-
-
-
-
-
-
-
-# import zmq
-# import time
-# import threading
-# from Client.client import Client  # Asegúrate de que este archivo esté en el mismo directorio
-# from Tracker.tracker import Tracker  # Asegúrate de que este archivo esté en el mismo directorio
-# from Client.torrent_utils import TorrentReader 
-# from Client.bclient_logger import logger
-
-
-# def start_tracker(ip="127.0.0.1", port=6200):
-#     tracker = Tracker(ip, port)
-#     tracker.run()
-
-# def start_client(ip="127.0.0.1", port=6201):
-#     client = Client(ip, port)
-    
-#     # Iniciar el servidor del cliente en un hilo separado
-#     server_thread = threading.Thread(target=client.run_server)
-#     server_thread.start()
-    
-#     return client
-
-# def test_tracker_and_client():
-#     # Iniciar el tracker
-#     tracker = Tracker(ip="127.0.0.1", port=6200)
-    
-#     time.sleep(1)  # Esperar a que el tracker esté listo
-
-#     # Iniciar un cliente
-#     client = Client(ip="127.0.0.1", port=8000)
-
-#     time.sleep(1)  # Esperar a que el cliente esté listo
-
-#     # Simular la subida de un archivo al tracker
-#     tracker_urls = ["127.0.0.1:6200"]
-#     file_1_path = "/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo1.txt"
-#     try:
-#         client.upload_file(file_1_path, tracker_urls)  # Cambia esto a un archivo real
-#         logger.info("Archivo subido correctamente")
-#     except Exception as e:
-#         logger.error(f"Error al subir el archivo: {e}")    
-
-#     # Obtener peers del tracker para verificar la funcionalidad
-#     dottorrent_file1_path = "Client/torrent_files/archivo1.torrent"
-
-#     try:
-#         tr = TorrentReader(dottorrent_file1_path)
-#         torrent_info = tr.build_torrent_info()
-#         peers = client.get_peers_from_tracker(torrent_info)
-#         print("Peers obtenidos del tracker:", peers)
-#     except Exception as e:
-#         logger.error(f"Error al obtener peers del tracker: {e}")
-
-#     # Simular otro cliente que se registre en el tracker
-#     another_client = Client("127.0.0.1", 8002)
-#     time.sleep(1)  # Esperar a que el segundo cliente esté listo
-
-
-    
-#     try:
-#         another_client.upload_file("/home/jose/Documents/proyectos/Bittorrent/Client/client_files/archivo2.txt", tracker_urls)  # Cambia esto a otro archivo real
-#         logger.info("Segundo archivo subido correctamente.")
-#     except Exception as e:
-#         logger.error(f"Error al subir segundo archivo: {e}")
-
-#     time.sleep(1)  # Esperar a que se registre
-    
-#     # Obtener peers nuevamente para verificar que ambos clientes están registrados
-#     dottorrent_file2_path = "Client/torrent_files/archivo2.torrent"
-    
-#     try:
-#         tr = TorrentReader(dottorrent_file2_path)
-#         torrent_info = tr.build_torrent_info()
-#         peers_after_registration = client.get_peers_from_tracker(torrent_info)  # Cambia esto a un archivo real
-#         print("Peers después del registro:", peers_after_registration)
-#     except Exception as e:
-#         logger.error(f"Error al obtener peers después del registro: {e}")
-
-
-# def test_download():
-#     # Iniciar el tracker
-#     tracker = Tracker(ip="127.0.0.1", port=6200)
-
-#     time.sleep(1)  # Esperar a que el tracker esté listo
-
-
-#     # Iniciar un cliente para subir un archivo
-#     upload_client = Client(ip="127.0.0.1", port=8000)
-
-#     time.sleep(1)  # Esperar a que el cliente esté listo
-
-#     # Simular la subida de un archivo al tracker
-#     file_to_upload = "Client/client_files/archivo1.txt"  # Cambia esto a un archivo real
-#     tracker_urls = ["127.0.0.1:6200"]
-    
-#     try:
-#         upload_client.upload_file(file_to_upload, tracker_urls)
-#         logger.info("Archivo subido correctamente.")
-#     except Exception as e:
-#         logger.error(f"Error al subir archivo: {e}")
-
-#     time.sleep(1)  # Esperar a que se registre
-
-#     # Iniciar otro cliente para descargar el archivo
-#     download_client = Client("127.0.0.1", 8001)
-
-#     time.sleep(1)  # Esperar a que el segundo cliente esté listo
-
-#     # Simular la descarga del archivo
-#     try:
-#         download_client.download_file("Client/torrent_files/archivo1.torrent", save_at='Client/downloaded_files')  # Cambia esto a un archivo torrent real
-#         logger.info("Descarga completada.")
-#     except Exception as e:
-#         logger.error(f"Error durante la descarga: {e}")
-
-# def test_clients_conection():
-#     # Iniciar varios clientes
-#     clients = []
-#     client_ip = "127.0.0.1"
-#     for i in range(3):
-#         client_port = 8000 + i  # Diferentes puertos para cada cliente
-#         clients.append(Client(client_ip, client_port))
-
-#     time.sleep(1)  # Esperar a que todos los clientes estén listos
-
-#     # Simular solicitudes entre clientes
-#     for i in range(len(clients)):
-#         target_client_index = (i + 1) % len(clients)  # Conectar con el siguiente cliente
-#         target_client = clients[target_client_index]
-#         clients[i].request_test(target_client.ip, target_client.port)
-#         #slogger.debug(response)
-
-# if __name__ == "__main__":
-#     test_download()
+    test_chord()
