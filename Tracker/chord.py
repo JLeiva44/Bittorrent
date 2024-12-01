@@ -29,15 +29,17 @@ class ChordNodeReference:
         self.ip = ip
         self.port = port
 
-    def _send_data(self, op: int, data: str = None) -> bytes:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((self.ip, self.port))
-                s.sendall(f'{op},{data}'.encode('utf-8'))
-                return s.recv(1024)
-        except Exception as e:
-            logger.error(f"Error sending data to {self.ip}:{self.port} - {e}")
-            return b''
+    def _send_data(self, op: int, data: str = None, retries : int = 3) -> bytes:
+        for _ in range(retries):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((self.ip, self.port))
+                    s.sendall(f'{op},{data}'.encode('utf-8'))
+                    return s.recv(1024)
+            except Exception as e:
+                logger.warning(f"Retrying to send data to {self.ip}:{self.port} due to error: {e}")
+                time.sleep(1)
+        logger.error(f"Failed to send data to {self.ip}:{self.port} after {retries} retries")        
 
     # Method to find the successor of a given id
     def find_successor(self, id: int) -> 'ChordNodeReference':
