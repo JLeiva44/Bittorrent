@@ -92,7 +92,6 @@ class Tracker:
                     message.get("pieces_sha1", ""),
                     message.get("peer", [None, None])[0],
                     message.get("peer", [None, None])[1],
-                    message.get("peer", [None, None])[2],
                 )
             elif action == "remove_from_database":
                 return self.remove_from_database(
@@ -128,16 +127,24 @@ class Tracker:
 
 
         peers = self.chord_node.retrieve_key(pieces_sha1)
+        logger.debug(f"La lista de peers que llega al tracker es {peers}")
+        final_peers = []
+        for peer in peers:
+            peer = peer.split(":")
+            final_peers.append((peer[0],peer[1]))
+
+
         logger.debug(f"Getting Peers for piece {pieces_sha1}")
-        logger.debug(f"Peers {peers}")
-        return {"peers": peers}
+        logger.debug(f"Peers {final_peers}")
+        return {"peers": final_peers}
         
         # Version Centralizada
         # with self.lock:
         #     peers = self.database.get(pieces_sha1, [])
         # return {"peers": peers}
 
-    def add_to_database(self, pieces_sha1,peer_id , peer_ip, peer_port):
+    def add_to_database(self, pieces_sha1,peer_ip, peer_port):
+        print("Entre al metodo add to databse")
         if not pieces_sha1 or not peer_ip or not peer_port:
             return {"error": "Datos incompletos para agregar al tracker."}
 
@@ -149,8 +156,8 @@ class Tracker:
         #TODOO ESTO YA LO HACE EL METODO store_key
         
         # Almacenar los datos
-        peer_data = f"{peer_id}:{peer_ip}:{peer_port}"
-        self.chord_node.store_key(pieces_sha1,peer_data)
+        peer = f'{peer_ip}:{peer_port}'
+        self.chord_node.store_key(pieces_sha1,peer)
         logger.debug(f"Added {peer_ip}:{peer_port} to Node: {peer_ip}:{peer_port} for piece {pieces_sha1}")    
         
 

@@ -140,7 +140,7 @@ class Client:
         request = {
                 "action": "remove_from_database" if remove else "add_to_database",
                 "pieces_sha1": sha1,
-                "peer": (self.id,self.ip, self.port)
+                "peer": (self.ip, self.port)
             }
         response = self._send_data(request,tracker_ip, tracker_port)
         logger.debug(f"Tracker response: {response}")
@@ -205,8 +205,10 @@ class Client:
                 break
 
     def find_rarest_piece(self, peers, torrent_info: TorrentInfo, owned_pieces):
+        logger.debug(f"Pers en finrerestpiece {peers}")
         count_of_pieces = [0] * torrent_info.number_of_pieces
         owners = [[] for _ in range(torrent_info.number_of_pieces)]
+
         
         for ip, port in peers:
             request = {

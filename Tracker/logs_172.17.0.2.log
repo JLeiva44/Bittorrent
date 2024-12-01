@@ -1,23 +1,51 @@
-2024-12-01 04:56:10,949 - INFO - Iniciando el TRACKER en 172.17.0.2:8080 con un anillo Chord de 8 bits...
-2024-12-01 04:56:10,950 - DEBUG - Tracker corriendo en tcp://172.17.0.2:8080
-2024-12-01 04:56:10,951 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
-2024-12-01 04:56:15,960 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:20,970 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:25,980 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:30,990 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:36,002 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:41,017 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:46,032 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:47,318 - DEBUG - Mensaje recibido: {'action': 'add_to_database', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e', 'peer': ['111', '172.17.0.3', '8080']}
-2024-12-01 04:56:47,432 - DEBUG - Added 172.17.0.3:8080 to Node: 172.17.0.3:8080 for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
-2024-12-01 04:56:52,452 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:56:57,462 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:02,472 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:07,482 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:12,492 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:17,502 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:18,719 - DEBUG - Mensaje recibido: {'action': 'get_peers', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e'}
-2024-12-01 04:57:18,761 - DEBUG - Getting Peers for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
-2024-12-01 04:57:18,766 - DEBUG - Peers 111,172.17.0.3
-2024-12-01 04:57:23,787 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-01 04:57:25,045 - INFO - El servidor del Tracker ha sido detenido manualmente.
+2024-12-01 07:47:33,566 - INFO - Iniciando el TRACKER en 172.17.0.2:8080 con un anillo Chord de 8 bits...
+2024-12-01 07:47:33,568 - DEBUG - Tracker corriendo en tcp://172.17.0.2:8080
+2024-12-01 07:47:33,568 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
+2024-12-01 07:47:36,585 - DEBUG - Mensaje recibido: {'action': 'add_to_database', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e', 'peer': ['172.17.0.3', '8080']}
+2024-12-01 07:47:36,585 - DEBUG - El value en store_key es 172.17.0.3:8080
+2024-12-01 07:47:36,606 - DEBUG - Se guardo 172.17.0.3:8080
+2024-12-01 07:47:36,704 - DEBUG - Added 172.17.0.3:8080 to Node: 172.17.0.3:8080 for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-01 07:47:39,267 - DEBUG - Mensaje recibido: {'action': 'get_peers', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e'}
+2024-12-01 07:47:39,283 - DEBUG - Data response es ['172.17.0.3:8080']
+2024-12-01 07:47:39,303 - DEBUG - La repuesta del retrieves_key  es ['172.17.0.3:8080']
+2024-12-01 07:47:39,308 - DEBUG - La lista de peers que llega al tracker es ['172.17.0.3:8080']
+2024-12-01 07:47:39,314 - DEBUG - Getting Peers for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-01 07:47:39,319 - DEBUG - Peers [('172.17.0.3', '8080')]
+2024-12-01 07:47:39,331 - DEBUG - Mensaje recibido: {'action': 'add_to_database', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e', 'peer': ['172.17.0.4', '8080']}
+2024-12-01 07:47:39,341 - DEBUG - El value en store_key es 172.17.0.4:8080
+2024-12-01 07:47:39,363 - DEBUG - Se guardo 172.17.0.4:8080
+2024-12-01 07:47:39,481 - DEBUG - Added 172.17.0.4:8080 to Node: 172.17.0.4:8080 for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-01 07:47:44,501 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:47:49,511 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:47:54,526 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:47:59,541 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:04,557 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:09,567 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:14,577 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:19,587 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:24,598 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:29,607 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:34,617 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:39,627 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:44,638 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:49,648 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:54,658 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:48:58,309 - DEBUG - Mensaje recibido: {'action': 'get_peers', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e'}
+2024-12-01 07:48:58,330 - DEBUG - Data response es ['172.17.0.3:8080', '172.17.0.4:8080']
+2024-12-01 07:48:58,345 - DEBUG - La repuesta del retrieves_key  es ['172.17.0.3:8080', '172.17.0.4:8080']
+2024-12-01 07:48:58,351 - DEBUG - La lista de peers que llega al tracker es ['172.17.0.3:8080', '172.17.0.4:8080']
+2024-12-01 07:48:58,356 - DEBUG - Getting Peers for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-01 07:48:58,361 - DEBUG - Peers [('172.17.0.3', '8080'), ('172.17.0.4', '8080')]
+2024-12-01 07:48:58,373 - DEBUG - Mensaje recibido: {'action': 'add_to_database', 'pieces_sha1': 'f0f8c5a6c003bbfd8318431417bc400fcbbcba3e', 'peer': ['172.17.0.4', '8080']}
+2024-12-01 07:48:58,384 - DEBUG - El value en store_key es 172.17.0.4:8080
+2024-12-01 07:48:58,395 - DEBUG - Se guardo 172.17.0.4:8080
+2024-12-01 07:48:58,458 - DEBUG - Added 172.17.0.4:8080 to Node: 172.17.0.4:8080 for piece f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-01 07:49:03,474 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:08,484 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:13,494 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:18,504 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:23,515 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:28,530 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:33,540 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:38,549 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-01 07:49:43,559 - DEBUG - No se recibió mensaje dentro del período de espera.

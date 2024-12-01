@@ -3,7 +3,7 @@ import threading
 import sys
 import time
 import hashlib
-
+from tracker_logger import logger
 # Operation codes
 FIND_SUCCESSOR = 1
 FIND_PREDECESSOR = 2
@@ -79,8 +79,8 @@ class ChordNodeReference:
     # Method to retrieve a value for a given key from the current node
     def retrieve_key(self, key: str) -> str:
         response = self._send_data(RETRIEVE_KEY, key).decode()
-        print(f"La respuesta del retirve_key es {response}")
-        return response
+        logger.debug(f"La repuesta del retrieves_key  es {response}")
+        return eval(response) if response != "[]" else []
 
     def __str__(self) -> str:
         return f'{self.id},{self.ip},{self.port}'
@@ -194,6 +194,7 @@ class ChordNode:
 
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
+        logger.debug(f"El value en store_key es {value}")
         key_hash = getShaRepr(key)
         node = self.find_succ(key_hash)
         node.store_key(key, value)
@@ -246,15 +247,22 @@ class ChordNode:
                     data_resp = self.closest_preceding_finger(id)
                 elif option == STORE_KEY:
                     key, value = data[1], data[2]
-                    self.data[key] = value
+                    try:
+                        self.data[key]
+                    except KeyError:
+                        self.data[key] = [value]
+                    else:
+                        self.data[key].append(value)
+
+                    logger.debug(f"Se guardo {value}")
                 elif option == RETRIEVE_KEY:
                     key = data[1]
-                    data_resp = self.data.get(key, '')
-                    data_resp = data_resp.split(":")
+                    data_resp = self.data.get(key, '') # Aumamos que aqui hay una lista
                     
                 if data_resp:
                     if option == RETRIEVE_KEY:
-                        response = f'{data_resp[0]},{data_resp[1]}'.encode()
+                        logger.debug(f"Data response es {data_resp}")
+                        response = f"{data_resp}".encode()    
 
                     else:
                         response = f'{data_resp.id},{data_resp.ip}'.encode()
