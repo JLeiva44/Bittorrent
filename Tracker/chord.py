@@ -15,18 +15,20 @@ CLOSEST_PRECEDING_FINGER = 7
 STORE_KEY = 8
 RETRIEVE_KEY = 9
 
-# Function to hash a string using SHA-1 and return its integer representation
+
 def getShaRepr(data: str):
+    """Function to hash a string using SHA-1 and return its integer representation"""
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
-# Class to reference a Chord node
 class ChordNodeReference:
+    """
+    Class to reference a Chord node
+    """
     def __init__(self, ip: str, port: int = 8001):
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
 
-    # Internal method to send data to the referenced node
     def _send_data(self, op: int, data: str = None) -> bytes:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -34,7 +36,7 @@ class ChordNodeReference:
                 s.sendall(f'{op},{data}'.encode('utf-8'))
                 return s.recv(1024)
         except Exception as e:
-            print(f"Error sending data: {e}")
+            logger.error(f"Error sending data to {self.ip}:{self.port} - {e}")
             return b''
 
     # Method to find the successor of a given id
@@ -79,7 +81,6 @@ class ChordNodeReference:
     # Method to retrieve a value for a given key from the current node
     def retrieve_key(self, key: str) -> str:
         response = self._send_data(RETRIEVE_KEY, key).decode()
-        logger.debug(f"La repuesta del retrieves_key  es {response}")
         return eval(response) if response != "[]" else []
 
     def __str__(self) -> str:
@@ -102,6 +103,7 @@ class ChordNode:
         self.finger = [self.ref] * self.m  # Finger table
         self.next = 0  # Finger table index to fix next
         self.data = {}  # Dictionary to store key-value pairs
+        self.lock = threading.Lock() # lock to protect shared resources
 
         # Start background threads for stabilization, fixing fingers, and checking predecessor
         threading.Thread(target=self.stabilize, daemon=True).start()  # Start stabilize thread
@@ -110,11 +112,10 @@ class ChordNode:
         threading.Thread(target=self.start_server, daemon=True).start()  # Start server thread
 
     # Helper method to check if a value is in the range (start, end]
-    def _inbetween(self, k: int, start: int, end: int) -> bool:
+    def _inbetween(self, k: int, start: int, end: int, inclusive_end = True) -> bool:
         if start < end:
-            return start < k <= end
-        else:  # The interval wraps around 0
-            return start < k or k <= end
+            return start < k <= end if inclusive_end else start < k< end
+        return start < k or k <= end if inclusive_end else start < k or k < end
 
     # Method to find the successor of a given id
     def find_succ(self, id: int) -> 'ChordNodeReference':
@@ -137,72 +138,66 @@ class ChordNode:
 
     # Method to join a Chord network using 'node' as an entry point
     def join(self, node: 'ChordNodeReference'):
-        if node:
-            self.pred = None
-            self.succ = node.find_successor(self.id)
-            self.succ.notify(self.ref)
-        else:
-            self.succ = self.ref
-            self.pred = None
+        with self.lock:
+            if node:
+                self.pred = None
+                self.succ = node.find_successor(self.id)
+                self.succ.notify(self.ref)
+            else:
+                self.succ = self.ref
+                self.pred = None
+
 
     # Stabilize method to periodically verify and update the successor and predecessor
     def stabilize(self):
         while True:
             try:
-                if self.succ.id != self.id:
-                    print('stabilize')
-                    x = self.succ.pred
-                    if x.id != self.id:
-                        print(x)
+                with self.lock:
+                     if self.succ.id != self.id:
+                        x = self.succ.pred
                         if x and self._inbetween(x.id, self.id, self.succ.id):
                             self.succ = x
                         self.succ.notify(self.ref)
             except Exception as e:
                 print(f"Error in stabilize: {e}")
+            logger.info(f"Stabilized: successor={self.succ}, predecessor={self.pred}")    
 
-            print(f"successor : {self.succ} predecessor {self.pred}")
             time.sleep(10)
 
     # Notify method to inform the node about another node
     def notify(self, node: 'ChordNodeReference'):
-        if node.id == self.id:
-            pass
-        if not self.pred or self._inbetween(node.id, self.pred.id, self.id):
-            self.pred = node
+        with self.lock:
+            if not self.pred or self._inbetween(node.id, self.pred.id, self.id):
+                self.pred = node
 
     # Fix fingers method to periodically update the finger table
     def fix_fingers(self):
         while True:
             try:
-                self.next += 1
-                if self.next >= self.m:
-                    self.next = 0
-                self.finger[self.next] = self.find_succ((self.id + 2 ** self.next) % 2 ** self.m)
+                with self.lock:
+                    self.next = (self.next + 1) % self.m
+                    self.finger[self.next] = self.find_succ((self.id + 2 ** self.next) % 2 ** self.m)
             except Exception as e:
-                print(f"Error in fix_fingers: {e}")
+                logger.error(f"Error in fix_fingers: {e}")
             time.sleep(10)
 
     # Check predecessor method to periodically verify if the predecessor is alive
     def check_predecessor(self):
         while True:
             try:
-                if self.pred:
-                    self.pred.check_predecessor()
-            except Exception as e:
+                with self.lock:
+                    if self.pred:
+                        self.pred.check_predecessor()
+            except Exception:
                 self.pred = None
             time.sleep(10)
 
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
-        logger.debug(f"El value en store_key es {value}")
+        logger.debug(f"Value in store_key: {value}")
         key_hash = getShaRepr(key)
         node = self.find_succ(key_hash)
         node.store_key(key, value)
-        if node.succ.id != node.id:
-            node.succ.store_key(key,value)
-        if node.succ.succ.id != node.id:
-            node.succ.succ.store_key(key,value)    
-        #self.data[key] = value  # Store in the current node
 
     # Retrieve key method to get a value for a given key
     def retrieve_key(self, key: str) -> str:
@@ -219,53 +214,92 @@ class ChordNode:
 
             while True:
                 conn, addr = s.accept()
-                print(f'new connection from {addr}')
+                threading.Thread(target=self.handle_connection, args=(conn, addr), daemon=True).start()
 
-                data = conn.recv(1024).decode().split(',')
+            
+            
+            # while True:
+            #     conn, addr = s.accept()
+            #     print(f'new connection from {addr}')
 
-                data_resp = None
-                option = int(data[0])
+            #     data = conn.recv(1024).decode().split(',')
 
-                if option == FIND_SUCCESSOR:
-                    id = int(data[1])
-                    data_resp = self.find_succ(id)
-                elif option == FIND_PREDECESSOR:
-                    id = int(data[1])
-                    data_resp = self.find_pred(id)
-                elif option == GET_SUCCESSOR:
-                    data_resp = self.succ if self.succ else self.ref
-                elif option == GET_PREDECESSOR:
-                    data_resp = self.pred if self.pred else self.ref
-                elif option == NOTIFY:
-                    id = int(data[1])
-                    ip = data[2]
-                    self.notify(ChordNodeReference(ip, self.port))
-                elif option == CHECK_PREDECESSOR:
-                    pass
-                elif option == CLOSEST_PRECEDING_FINGER:
-                    id = int(data[1])
-                    data_resp = self.closest_preceding_finger(id)
-                elif option == STORE_KEY:
-                    key, value = data[1], data[2]
-                    try:
-                        self.data[key]
-                    except KeyError:
-                        self.data[key] = [value]
-                    else:
-                        self.data[key].append(value)
+            #     data_resp = None
+            #     option = int(data[0])
 
-                    logger.debug(f"Se guardo {value}")
-                elif option == RETRIEVE_KEY:
-                    key = data[1]
-                    data_resp = self.data.get(key, '') # Aumamos que aqui hay una lista
+            #     if option == FIND_SUCCESSOR:
+            #         id = int(data[1])
+            #         data_resp = self.find_succ(id)
+            #     elif option == FIND_PREDECESSOR:
+            #         id = int(data[1])
+            #         data_resp = self.find_pred(id)
+            #     elif option == GET_SUCCESSOR:
+            #         data_resp = self.succ if self.succ else self.ref
+            #     elif option == GET_PREDECESSOR:
+            #         data_resp = self.pred if self.pred else self.ref
+            #     elif option == NOTIFY:
+            #         id = int(data[1])
+            #         ip = data[2]
+            #         self.notify(ChordNodeReference(ip, self.port))
+            #     elif option == CHECK_PREDECESSOR:
+            #         pass
+            #     elif option == CLOSEST_PRECEDING_FINGER:
+            #         id = int(data[1])
+            #         data_resp = self.closest_preceding_finger(id)
+            #     elif option == STORE_KEY:
+            #         key, value = data[1], data[2]
+            #         try:
+            #             self.data[key]
+            #         except KeyError:
+            #             self.data[key] = [value]
+            #         else:
+            #             self.data[key].append(value)
+
+            #         logger.debug(f"Se guardo {value}")
+            #     elif option == RETRIEVE_KEY:
+            #         key = data[1]
+            #         data_resp = self.data.get(key, '') # Aumamos que aqui hay una lista
                     
-                if data_resp:
-                    if option == RETRIEVE_KEY:
-                        logger.debug(f"Data response es {data_resp}")
-                        response = f"{data_resp}".encode()    
+            #     if data_resp:
+            #         if option == RETRIEVE_KEY:
+            #             logger.debug(f"Data response es {data_resp}")
+            #             response = f"{data_resp}".encode()    
 
-                    else:
-                        response = f'{data_resp.id},{data_resp.ip}'.encode()
-                    conn.sendall(response)
-                conn.close()
+            #         else:
+            #             response = f'{data_resp.id},{data_resp.ip}'.encode()
+            #         conn.sendall(response)
+            #     conn.close()
 
+def handle_connection(self, conn, addr):
+        try:
+            data = conn.recv(1024).decode().split(',')
+            option = int(data[0])
+            response = None
+
+            if option == FIND_SUCCESSOR:
+                id = int(data[1])
+                response = self.find_succ(id)
+            elif option == FIND_PREDECESSOR:
+                id = int(data[1])
+                response = self.find_pred(id)
+            elif option == GET_SUCCESSOR:
+                response = self.succ if self.succ else self.ref
+            elif option == GET_PREDECESSOR:
+                response = self.pred if self.pred else self.ref
+            elif option == NOTIFY:
+                id = int(data[1])
+                ip = data[2]
+                self.notify(ChordNodeReference(ip, self.port))
+            elif option == STORE_KEY:
+                key, value = data[1], data[2]
+                self.data.setdefault(key, []).append(value)
+            elif option == RETRIEVE_KEY:
+                key = data[1]
+                response = self.data.get(key, '')
+
+            if response:
+                conn.sendall(str(response).encode())
+        except Exception as e:
+            logger.error(f"Error handling connection from {addr}: {e}")
+        finally:
+            conn.close()
