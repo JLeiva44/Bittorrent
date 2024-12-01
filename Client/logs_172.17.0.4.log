@@ -1,0 +1,5 @@
+2024-12-01 04:57:18,712 - DEBUG - Strating PeerServerThread
+2024-12-01 04:57:18,713 - DEBUG - METHOD: get_peers_from_Tracker
+2024-12-01 04:57:18,772 - DEBUG - Connected peer 172.17.0.4:8080 to tracker 172.17.0.2:8080
+2024-12-01 04:57:18,772 - DEBUG - Tracker response: {'peers': '111,172.17.0.3'}
+2024-12-01 04:57:18,772 - INFO - Peers obtenidos: ['1', '1', '1', ',', '1', '7', '2', '.', '1', '7', '.', '0', '.', '3']

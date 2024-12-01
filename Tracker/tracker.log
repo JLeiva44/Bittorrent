@@ -1,0 +1,9 @@
+2024-11-30 21:05:49,311 - INFO - Iniciando el TRACKER en 0.0.0.0:8080 con un anillo Chord de 8 bits...
+2024-11-30 21:05:49,313 - DEBUG - Tracker corriendo en tcp://0.0.0.0:8080
+2024-11-30 21:05:49,313 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
+2024-11-30 21:05:54,323 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-11-30 21:05:59,334 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-11-30 21:06:04,349 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-11-30 21:06:09,359 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-11-30 21:06:14,375 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-11-30 21:06:17,672 - INFO - El servidor del Tracker ha sido detenido manualmente.

@@ -3,10 +3,10 @@ import math
 import time 
 import logging
 #import zmq
-from Client.disk_io import DiskIO
+from disk_io import DiskIO
 
 
-from Client.block import Block, DEFAULT_Block_SIZE, State
+from block import Block, DEFAULT_Block_SIZE, State
 
 class Piece:
     def __init__(self, piece_index:int, piece_offset, piece_size:int, piece_hash :str) -> None:

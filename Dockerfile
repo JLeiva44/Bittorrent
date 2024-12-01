@@ -1,17 +1,19 @@
 # Usa una imagen base de Python 3.10
 FROM python:3.10-slim
 
-# Establece el directorio de trabajo en el contenedor
+# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia el archivo requirements.txt al contenedor
-COPY requirements.txt .
+# Copia solo los archivos necesarios para instalar dependencias
+COPY requirements.txt /app/
 
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia el resto de la aplicación al contenedor
-COPY . .
+# Copia todo el contenido del proyecto al contenedor
+# (El bind mount sobreescribirá esto en tiempo de ejecución)
+COPY . /app/
 
-# Define el comando que se ejecutará al iniciar el contenedor
-#CMD ["python", "app.py"]
+CMD ["tail", "-f", "/dev/null"]
+
+

@@ -1,7 +1,8 @@
 
 import zmq
 import threading
-from Client.bclient_logger import logger
+#from bclient_logger import logger
+import logging
 import hashlib
 import time
 from chord import ChordNode
@@ -9,9 +10,13 @@ HOST = '127.0.0.1'
 PORT1 = '8080'
 PORT2 = '8001'
 
+logger = logging.getLogger(__name__)
+
 def sha256_hash(s):
     return int(hashlib.sha256(s.encode()).hexdigest(), 16)
 
+def getShaRepr(data: str):
+    return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
 class Tracker:
     def __init__(self, ip, port, chord_m = 8):
@@ -21,7 +26,7 @@ class Tracker:
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
 
         # nodo Chord 
-        self.chord_node  = ChordNode(ip,port,m=chord_m)
+        self.chord_node  = ChordNode(ip,m=chord_m)
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(self.address)
@@ -87,6 +92,7 @@ class Tracker:
                     message.get("pieces_sha1", ""),
                     message.get("peer", [None, None])[0],
                     message.get("peer", [None, None])[1],
+                    message.get("peer", [None, None])[2],
                 )
             elif action == "remove_from_database":
                 return self.remove_from_database(
@@ -117,10 +123,11 @@ class Tracker:
         # Buscar el nodo correspondiente en el anillo Chord para la pieza
         #node_ref = self.chord_node.ref.find_succ(sha256_hash(pieces_sha1))
         
-        node_ref = self.chord_node.ref.find_succ(pieces_sha1) # ver despues si no hay que pasarlo x el sha256
+        # key = getShaRepr(pieces_sha1)
+        # node_ref = self.chord_node.find_succ(key) 
 
 
-        peers = node_ref.retrieve_key(pieces_sha1)
+        peers = self.chord_node.retrieve_key(pieces_sha1)
         logger.debug(f"Getting Peers for piece {pieces_sha1}")
         logger.debug(f"Peers {peers}")
         return {"peers": peers}
@@ -130,35 +137,22 @@ class Tracker:
         #     peers = self.database.get(pieces_sha1, [])
         # return {"peers": peers}
 
-    def add_to_database(self, pieces_sha1, ip, port):
-        if not pieces_sha1 or not ip or not port:
+    def add_to_database(self, pieces_sha1,peer_id , peer_ip, peer_port):
+        if not pieces_sha1 or not peer_ip or not peer_port:
             return {"error": "Datos incompletos para agregar al tracker."}
 
         # Obtener el nodo correspondiente en el anillo Chord para la pieza
         #node_ref = self.chord_node.find_succ(sha256_hash(pieces_sha1)) # Ver si es asi o solo con sha1
-        node_ref = self.chord_node.find_succ(pieces_sha1) # Ver si es asi o solo con sha1
 
+        # key = getShaRepr(pieces_sha1)
+        # node_ref = self.chord_node.find_succ(key) # Ver si es asi o solo con sha1
+        #TODOO ESTO YA LO HACE EL METODO store_key
+        
         # Almacenar los datos
-        addres = f"{ip}:{port}"
-        node_ref.store_key(pieces_sha1,addres)
-        logger.debug(f"Added {ip}:{port} to Node: {ip}:{port} for piece {pieces_sha1}")    
-        # with self.lock:
-        #     if pieces_sha1 not in self.database:
-        #         self.database[pieces_sha1] = []
-        #     if (ip, port) not in self.database[pieces_sha1]:
-        #         self.database[pieces_sha1].append((ip, port))
-
-        # logger.debug(f"Agregado {ip}:{port} al tracker para {pieces_sha1}")
-        # return {"response": f"Agregado {ip}:{port} para {pieces_sha1}"}
-        # if pieces_sha256 not in self.database:
-        #     self.database[pieces_sha256] = []
+        peer_data = f"{peer_id}:{peer_ip}:{peer_port}"
+        self.chord_node.store_key(pieces_sha1,peer_data)
+        logger.debug(f"Added {peer_ip}:{peer_port} to Node: {peer_ip}:{peer_port} for piece {pieces_sha1}")    
         
-        # if (ip, port) not in self.database[pieces_sha256]:
-        #     self.database[pieces_sha256].append((ip, port))
-        
-        # logger.debug(f"Added {ip}:{port} to database for piece {pieces_sha256}")   
-        # return {"reponse":f"Added {ip}:{port} to database for piece {pieces_sha256}"}
-
 
     def remove_from_database(self, pieces_sha1, ip, port):
         if not pieces_sha1 or not ip or not port:
@@ -183,15 +177,3 @@ class Tracker:
         
 
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Ejecutar el Tracker.")
-    parser.add_argument("--ip", type=str, default="0.0.0.0", help="IP en la que escucha el Tracker (por defecto: 0.0.0.0)")
-    parser.add_argument("--port", type=int, default=8080, help="Puerto en el que escucha el Tracker (por defecto: 8080)")
-    args = parser.parse_args()
-
-    print(f"Inicializando el Tracker en {args.ip}:{args.port}")
-    
-    # Instancia del Tracker
-    tracker = Tracker(ip=args.ip, port=args.port)
-    tracker.run()
