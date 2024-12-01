@@ -1,4 +1,4 @@
-2024-12-01 04:56:47,310 - DEBUG - Strating PeerServerThread
-2024-12-01 04:56:47,311 - DEBUG - Connecting peer 172.17.0.3:8080 to tracker 172.17.0.2:8080
-2024-12-01 04:56:47,437 - DEBUG - Tracker response: None
-2024-12-01 04:56:47,437 - INFO - Archivo subido y añadido a los trackers.
+2024-12-01 07:47:36,577 - DEBUG - Strating PeerServerThread
+2024-12-01 07:47:36,578 - DEBUG - Connecting peer 172.17.0.3:8080 to tracker 172.17.0.2:8080
+2024-12-01 07:47:36,710 - DEBUG - Tracker response: None
+2024-12-01 07:47:36,710 - INFO - Archivo subido y añadido a los trackers.

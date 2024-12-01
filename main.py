@@ -164,10 +164,10 @@
 
 #     test_chord()
 id = 3
-ip = 5
-port = 8
+ip = "22.22.222"
+port = 8767
 
-addres = f"{id}:{ip}:{port}"
+addres = f"{ip}:{port}"
+addres = addres.split(":")
 
-d = {'id':1}
-print(d.id)
+print(addres)

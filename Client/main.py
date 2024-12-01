@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--path", type=str, default="client_files/test_file.txt", help="Ruta del archivo a cargar o .torrent a descargar")
     parser.add_argument("--save-at",type=str, default="downloaded_files", help="Directorio donde guardar los archivos descargados")
     parser.add_argument("--tracker-urls", nargs="+", help="URLs de trackers (formato IP:PORT)")
-    parser.add_argument("--torrent-info", help="Archivo .torrent para obtener información")
+    parser.add_argument("--torrent-info", default='torrent_files/test_file.torrent', help="Archivo .torrent para obtener información")
     parser.add_argument("--remove", action="store_true", help="Eliminar peer del tracker")
     
     args = parser.parse_args()
@@ -35,10 +35,10 @@ def main():
         logger.info("Archivo subido y añadido a los trackers.")
 
     elif args.command == "download":
-        if not args.path or not args.save_at:
+        if not args.torrent_info or not args.save_at:
             logger.error("Para descargar un archivo necesitas proporcionar --path y --save-at")
             return
-        client.download_file(args.path, args.save_at)
+        client.download_file(args.torrent_info, args.save_at)
         logger.info("Descarga completada.")
 
     elif args.command == "connect-tracker":
