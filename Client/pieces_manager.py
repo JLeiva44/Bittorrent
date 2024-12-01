@@ -1,10 +1,10 @@
-from Client.piece import Piece
-from Client.disk_io import DiskIO
+from piece import Piece
+from disk_io import DiskIO
 import os
 import math
 import hashlib
-from Client.torrent_utils import TorrentInfo
-import bitstring
+from torrent_utils import TorrentInfo
+#import bitstring
 
 class PieceManager:
 

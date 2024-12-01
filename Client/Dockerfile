@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 9000
 
 # Comando para ejecutar el Cliente (puedes modificar los argumentos si es necesario)
-CMD ["python", "main.py", "--tracker-ip", "tracker", "--tracker-port", "8080", "--ip", "0.0.0.0", "--port", "9000"]
+#CMD ["python", "main.py", "--tracker-ip", "tracker", "--tracker-port", "8080", "--ip", "0.0.0.0", "--port", "9000"]

@@ -1,7 +1,7 @@
-from Client.torrent_utils import TorrentCreator, TorrentInfo, TorrentReader
-from Client.pieces_manager import PieceManager
-from Client.block import State, DEFAULT_Block_SIZE, Block
-from Client.bclient_logger import logger
+from torrent_utils import TorrentCreator, TorrentInfo, TorrentReader
+from pieces_manager import PieceManager
+from block import State, DEFAULT_Block_SIZE, Block
+from bclient_logger import logger
 
 import os
 import zmq
@@ -21,8 +21,8 @@ PIECE_SIZE =  2**18 # 256 Kb (kilobibits) = 262144 bits
 ACTUAL_PATH = os.getcwd()
 
 class Client:
-    def __init__(self, ip, port, peer_id = None) -> None:
-        self.peer_id = peer_id
+    def __init__(self, ip, port, peer_id ) -> None:
+        self.id = peer_id
         self.ip = ip
         self.port = port
         self.peers = []
@@ -126,7 +126,7 @@ class Client:
         #sha1_hash = torrent_maker.get_hash_pieces()
         sha1_hash = torrent_maker.get_hash_pieces()
         assert sha1_hash != ""
-        torrent_maker.create_dottorrent_file('Client/torrent_files')
+        torrent_maker.create_dottorrent_file('torrent_files')
         
         trackers = [tuple(url.split(':')) for url in tracker_urls]
         self.update_trackers(trackers, sha1_hash)
@@ -140,7 +140,7 @@ class Client:
         request = {
                 "action": "remove_from_database" if remove else "add_to_database",
                 "pieces_sha1": sha1,
-                "peer": (self.ip, self.port)
+                "peer": (self.id,self.ip, self.port)
             }
         response = self._send_data(request,tracker_ip, tracker_port)
         logger.debug(f"Tracker response: {response}")
@@ -172,7 +172,7 @@ class Client:
                 logger.error("Invalid torrent info provided for bitfield.")
                 return {"error": "Invalid torrent info"}
 
-            piece_manager = PieceManager(info, 'Client/client_files')
+            piece_manager = PieceManager(info, 'client_files')
             return {"bitfield": piece_manager.bitfield}
         except Exception as e:
             logger.error(f"Error generating bitfield: {e}")
@@ -247,7 +247,7 @@ class Client:
         
     def get_block_of_piece(self, info: dict, piece_index: int, block_offset: int):
         try:
-            piece_manager = PieceManager(info, 'Client/client_files')
+            piece_manager = PieceManager(info, 'client_files')
             block = piece_manager.get_block_piece(piece_index, block_offset)
 
             # Asegurarse de que los datos estén codificados en Base64

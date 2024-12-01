@@ -79,6 +79,7 @@ class ChordNodeReference:
     # Method to retrieve a value for a given key from the current node
     def retrieve_key(self, key: str) -> str:
         response = self._send_data(RETRIEVE_KEY, key).decode()
+        print(f"La respuesta del retirve_key es {response}")
         return response
 
     def __str__(self) -> str:
@@ -192,12 +193,15 @@ class ChordNode:
             time.sleep(10)
 
     # Store key method to store a key-value pair and replicate to the successor
-    def store_key(self, key: str, value: str):
+    def store_key(self, key: str, value):
         key_hash = getShaRepr(key)
         node = self.find_succ(key_hash)
         node.store_key(key, value)
-        self.data[key] = value  # Store in the current node
-        self.succ.store_key(key, value)  # Replicate to the successor
+        if node.succ.id != node.id:
+            node.succ.store_key(key,value)
+        if node.succ.succ.id != node.id:
+            node.succ.succ.store_key(key,value)    
+        #self.data[key] = value  # Store in the current node
 
     # Retrieve key method to get a value for a given key
     def retrieve_key(self, key: str) -> str:
@@ -246,9 +250,14 @@ class ChordNode:
                 elif option == RETRIEVE_KEY:
                     key = data[1]
                     data_resp = self.data.get(key, '')
-
+                    data_resp = data_resp.split(":")
+                    
                 if data_resp:
-                    response = f'{data_resp.id},{data_resp.ip}'.encode()
+                    if option == RETRIEVE_KEY:
+                        response = f'{data_resp[0]},{data_resp[1]}'.encode()
+
+                    else:
+                        response = f'{data_resp.id},{data_resp.ip}'.encode()
                     conn.sendall(response)
                 conn.close()
 
