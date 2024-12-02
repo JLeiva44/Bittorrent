@@ -5,6 +5,7 @@ import threading
 import logging
 import hashlib
 import time
+import socket
 from chord import ChordNode
 HOST = '127.0.0.1'
 PORT1 = '8080'
@@ -19,25 +20,90 @@ def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
 class Tracker:
-    def __init__(self, ip, port, chord_m = 8):
+    def __init__(self, ip, port, chord_m = 8,broadcast_port = 5555):
         self.ip = ip
         self.port = port
+        self.broadcast_port = broadcast_port # Puerto para broadcast
         self.address = "tcp://" + self.ip + ":" + str(self.port)
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
 
         # nodo Chord 
         self.chord_node  = ChordNode(ip,m=chord_m)
         self.context = zmq.Context()
+        
+        # Server Sockets
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(self.address)
         self.socket.RCVTIMEO = 5000  # Timeout de 5 segundos para evitar bloqueos
 
+        # Broadcast Socket
+        self.broadcast_socket = self.context.socket(zmq.PUB)
+        self.broadcast_socket.bind(f"tcp://*:{self.broadcast_port}")
+
+        self.response_socket = self.context.socket(zmq.SUB)
+        self.response_socket.connect(f"tcp://localhost:{self.broadcast_port}")
+        self.response_socket.setsockopt_string(zmq.SUBSCRIBE, "")  # Suscribir a todos los mensajes
+
         self.database = {}
         self.lock = threading.Lock()  # Para sincronizar el acceso a la base de datos
         
+        # Crear hilospara servidor de broadcast y ejecucion Principal
         threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
+        threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
 
+        # Intentar unirse a la red mediante broadcast
+        self.autodiscover_and_join()
 
+    def listen_for_broadcasts(self):
+        """Escucha mensajes de broadcast de otros Trackers."""
+        logger.debug(f"Escuchando broadcast en puerto {self.broadcast_port}")
+
+        while True:
+            try:
+                message = self.response_socket.recv_json()
+                if message.get("type") == "DISCOVER_TRACKERS":
+                    logger.debug(f"Mensaje de broadcast recibido: {message}")
+
+                    # Responder con la dirección del nodo
+                    response = {"type": "TRACKER_RESPONSE", "address": self.address}
+                    self.broadcast_socket.send_json(response)
+            except zmq.ZMQError as e:
+                logger.error(f"Error en el socket de broadcast: {e}")
+
+    def autodiscover_and_join(self):
+        """Envía un mensaje de broadcast para descubrir otros nodos."""
+        logger.debug("Iniciando autodescubrimiento...")
+
+        try:
+            # Enviar mensaje de descubrimiento
+            discover_message = {"type": "DISCOVER_TRACKERS"}
+            self.broadcast_socket.send_json(discover_message)
+
+            # Escuchar respuestas
+            start_time = time.time()
+            timeout = 3  # Segundos de espera
+
+            while time.time() - start_time < timeout:
+                try:
+                    message = self.response_socket.recv_json(flags=zmq.NOBLOCK)
+                    if message.get("type") == "TRACKER_RESPONSE":
+                        tracker_address = message.get("address")
+                        logger.debug(f"Tracker encontrado: {tracker_address}")
+
+                        # Unirse a la red Chord usando el nodo encontrado
+                        self.chord_node.join(tracker_address)
+                        logger.info(f"Unido al anillo Chord a través de {tracker_address}")
+                        return
+                except zmq.Again:
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error en el autodescubrimiento: {e}")
+
+        # Si no se encontraron nodos, inicializar un nuevo anillo
+        logger.info("No se encontraron nodos, inicializando nuevo anillo.")
+        self.chord_node.create()
+        
     def run(self):
         logger.debug(f"Tracker corriendo en {self.address}")
         retry_attempts = 0
