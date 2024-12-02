@@ -1,7 +1,7 @@
-from Client.torrent_utils import TorrentCreator, TorrentInfo, TorrentReader
-from Client.pieces_manager import PieceManager
-from Client.block import State, DEFAULT_Block_SIZE, Block
-from Client.bclient_logger import logger
+from torrent_utils import TorrentCreator, TorrentInfo, TorrentReader
+from pieces_manager import PieceManager
+from block import State, DEFAULT_Block_SIZE, Block
+from bclient_logger import logger
 
 import os
 import zmq
@@ -21,119 +21,135 @@ PIECE_SIZE =  2**18 # 256 Kb (kilobibits) = 262144 bits
 ACTUAL_PATH = os.getcwd()
 
 class Client:
-    def __init__(self, ip, port, peer_id = None) -> None:
-        self.peer_id = peer_id
+    def __init__(self, ip, port, peer_id ) -> None:
+        self.id = peer_id
         self.ip = ip
         self.port = port
         self.peers = []
         self.context = zmq.Context()
-        self.server_socket = self.context.socket(zmq.REP)
-        #self.server_socket.bind(f"tcp://{self.ip}:{self.port}")
-        self.tracker_sockets = {}
+        self.lock = threading.Lock() # Para sincronizar recursos compartidos
+
         logger.debug(f"Strating PeerServerThread")
         threading.Thread(target=self.run_server, daemon=True).start() # Start server thread
+    
+    def _send_data(self,request,ip, port, timeout = 5000) -> bytes:
+        """Method for sending data to a Peer using ZMQ with timeout"""
+        try:
+            with self.context.socket(zmq.REQ) as s:
+                s.connect(f'tcp://{ip}:{port}')
+                s.send_json(request)
 
+                poller = zmq.Poller()
+                poller.register(s,zmq.POLLIN)
+
+                if poller.poll(timeout):  # Espera hasta el timeout
+                    return s.recv_json()
+                else:
+                    raise zmq.Again("Timeout while waiting for response")
+        
+        except zmq.Again as e:
+            logger.warning(f"Timeout communicating with {ip}:{port} - {e}")
+            return None
+        except zmq.ZMQError as e:
+            logger.error(f"ZMQError occurred: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return None
+            
 
     def request_test(self, ip, port):
-        proxy_socket = self.context.socket(zmq.REQ)
-        # proxy_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
-        # proxy_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
-        
-        max_retries = 3
+        request = {"action": "request_test"}
+        response = self._send_data(request, ip, port)
+        if response:
+            logger.debug(f"Test successful. Peer ID: {response.get('id')}")
 
+    def handshake(self, peer_ip, peer_port, info_hash):
+        """Método para realizar el handshake con otro peer."""
+        # El mensaje de handshake incluye el protocolo, el peer_id y el info_hash
+        handshake_message = {
+            "action" : "handshake",
+            "protocol": "BitTorrentco",  # Identificador del protocolo
+            "peer_id": self.id,  # El ID del peer
+            "info_hash": info_hash  # El hash del torrent
+        }
+        
         try:
-            proxy_socket.connect(f"tcp://{ip}:{port}")
-                
-            # for attempt in range(max_retries):
-            #     if self.is_socket_connected(proxy_socket):
-            #         logger.warning(f"Server at {ip}:{port} is alive")
-            #         break
-            #     else : 
-            #         logger.warning(f"Server at {ip}:{port} is not alive")
-            #     time.sleep(0.1)  # Esperar antes del siguiente intento
-            
-            # else:
-            #     logger.error(f"Failed to connect to {ip}:{port} after {max_retries} attempts.")
-            
-            request = {
-                "action": "request_test",
-            }
-            
-            proxy_socket.send_json(request)
-            response = proxy_socket.recv_json()
-            logger.debug(f"Testing realizado correctamente. El id del al que llam fue {response['id']}")
-            
-
-        except zmq.ZMQError as e:
-            logger.error(f"ZMQError connecting to {ip}:{port} - {e}")
+            response = self._send_data(handshake_message, peer_ip, peer_port)
+            if response and response.get('status') == 'handshake_success':
+                logger.debug(f"Handshake exitoso con {peer_ip}:{peer_port}")
+            else:
+                logger.warning(f"Handshake fallido con {peer_ip}:{peer_port}")
+            return response    
         except Exception as e:
-            logger.error(f"An error occurred while getting bit field from {ip}:{port} - {e}")
-        
-        finally:
-            proxy_socket.close()
+            logger.error(f"Error en el handshake con {peer_ip}:{peer_port} - {e}")
 
-
+   
     def run_server(self):
-        address = f"tcp://{self.ip}:{self.port}"
-        self.server_socket.bind(address)
-        logger.debug(f"Servidor de Peer escuvhando en tcp://{self.ip}:{self.port}")
-         # Establecer un timeout de 5 segundos para recibir
-        #self.server_socket.setsockopt(zmq.RCVTIMEO, 10000)
+        """Mthod that initializes the Server that listen conexions from other Peers"""
+        context = zmq.Context()
+        server_socket = context.socket(zmq.REP)
+        server_socket.bind(f'tcp://{self.ip}:{self.port}')
 
         while True:
             try:
-                message = self.server_socket.recv_json()
-                action_type = message.get("action")
-                logger.debug(f"El servidor (PEER) {self.ip}:{self.port} recibio el mnesaje {message}")
-                
-                if action_type == "get_bit_field":
-                    response = self.get_bit_field_of(message['info'])
-                    logger.debug(f"GetBitfieldResponse: {response}")
-                    self.server_socket.send_json(response)
-                    
-                elif action_type == "get_block":
-                    response = self.get_block_of_piece(message['info'], message['piece_index'], message['block_offset'])
-                    logger.debug(f"GetBlockResponse: {response}")
-                    self.server_socket.send_json(response)
+                poller = zmq.Poller()
+                poller.register(server_socket, zmq.POLLIN)
 
-                elif action_type == "request_test":
-                    response = {'id':self.peer_id}
-                    logger.debug("Testing Request")
-                    #Probando con el id
-                    self.server_socket.send_json(response)    
+
+                if poller.poll(1000): # 1 segundo de timeout para no bloquear:
+                    message = server_socket.recv_json()
+                    action_type = message.get("action")
+                    logger.debug(f"Received message {message} on {self.ip}:{self.port}")
+
+                    #if action_type == 'handshake':
+
                     
+                    if action_type == "get_bit_field":
+                        response = self.get_bit_field_of(message['info'])
+                        #logger.debug(f"GetBitfieldResponse: {response}")
+                        server_socket.send_json(response)
+                        
+                    elif action_type == "get_block":
+                        response = self.get_block_of_piece(message['info'], message['piece_index'], message['block_offset'])
+                        #logger.debug(f"GetBlockResponse: {response}")
+                        server_socket.send_json(response)
+
+                    elif action_type == "request_test":
+                        response = {'id':self.peer_id}
+                        #logger.debug("Testing Request")
+                        #Probando con el id
+                        server_socket.send_json(response)    
+                        
+                    else:
+                        server_socket.send_json({"error": "Unknown action"})
                 else:
-                    self.server_socket.send_json({"error": "Unknown action"})
-            
+                    # No hay mensaje recibido
+                    continue       
+                
             except zmq.Again:
                 # Timeout alcanzado, no hay mensaje recibido
                 logger.debug("No message received within the timeout period.")
                 continue  # Continúa esperando nuevos mensajes
 
             except zmq.ZMQError as e:
-                logger.error(f"ZMQError occurred: {e}")
+                logger.error(f"ZMQError occurred: {e}. Restarting server socket...")
+                server_socket.close()
+                server_socket = context.socket(zmq.REP)
+                server_socket.bind(f'tcp://{self.ip}:{self.port}')
             except Exception as e:
-                logger.error(f"An error occurred in the server: {e}")
+                logger.error(f"Unexpected error in server: {e}")
 
-    def connect_to_peer(self,peer_ip, peer_port):
-        try:
-            client_socket = self.context.socket(zmq.REQ)
-            client_socket.connect(f"tcp://{peer_ip}:{peer_port}")
-            # Realiza operaciones con client_socket aquí
-            client_socket.send_json({"action": "ping"})
-            response = client_socket.recv_json()
-            logger.debug(f"Response from peer {peer_ip}:{peer_port}: {response}")
-        except zmq.ZMQError as e:
-            logger.error(f"ZMQError connecting to {peer_ip}:{peer_port} - {e}")
-        finally:
-            client_socket.close()
+            # Ver si tengo que cerrar la conexion    
+
+    
 
     def upload_file(self, path, tracker_urls, private=False, comments="unknown", source="unknown"):
         torrent_maker = TorrentCreator(path, 1 << 18, private, tracker_urls,comments, source)
         #sha1_hash = torrent_maker.get_hash_pieces()
         sha1_hash = torrent_maker.get_hash_pieces()
         assert sha1_hash != ""
-        torrent_maker.create_dottorrent_file('Client/torrent_files')
+        torrent_maker.create_dottorrent_file('torrent_files')
         
         trackers = [tuple(url.split(':')) for url in tracker_urls]
         self.update_trackers(trackers, sha1_hash)
@@ -143,30 +159,14 @@ class Client:
             self.connect_to_tracker(tracker_ip, tracker_port, sha1, remove)    
 
     def connect_to_tracker(self, tracker_ip, tracker_port, sha1, remove):
-        logger.debug(f"METHOD: connect_to_Tracker")
-        tracker_socket = self.context.socket(zmq.REQ)
-        tracker_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
-        tracker_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
-
-        try:
-            logger.debug(f"Intentando conectar el PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
-            tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
-            request = {
+        logger.debug(f"Connecting peer {self.ip}:{self.port} to tracker {tracker_ip}:{tracker_port}")
+        request = {
                 "action": "remove_from_database" if remove else "add_to_database",
                 "pieces_sha1": sha1,
                 "peer": (self.ip, self.port)
             }
-            tracker_socket.send_json(request)
-            response = tracker_socket.recv_json()
-            logger.debug(f"Se Conecto el PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
-            logger.debug(f"Tracker response: {response}")
-
-        except zmq.ZMQError as e:
-            logger.error(f"ZMQError connecting to tracker {tracker_ip}:{tracker_port} - {e}")
-        
-        finally:
-            tracker_socket.close()
-            logger.debug(f"Se cerro la conexion del PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
+        response = self._send_data(request,tracker_ip, tracker_port)
+        logger.debug(f"Tracker response: {response}")
         
 
     def get_peers_from_tracker(self, torrent_info):
@@ -175,39 +175,34 @@ class Client:
         trackers = torrent_info.get_trackers()
         
         for tracker_ip, tracker_port in trackers:
-            tracker_socket = self.context.socket(zmq.REQ)
-            tracker_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
-            tracker_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
+            request = {"action": "get_peers", "pieces_sha1": torrent_info.metainfo['info']['pieces']}
+            response = self._send_data(request,tracker_ip,tracker_port)
 
-            try:
-                tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
-                request = {"action": "get_peers", "pieces_sha1": torrent_info.metainfo['info']['pieces']}
-                tracker_socket.send_json(request)
-                response = tracker_socket.recv_json()
+            if response:
                 peers.extend(response.get('peers', []))
-                logger.debug(f"Se Conecto el PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
+                logger.debug(f"Connected peer {self.ip}:{self.port} to tracker {tracker_ip}:{tracker_port}")
                 logger.debug(f"Tracker response: {response}")
-
-            except zmq.ZMQError as e:
-                logger.error(f"ZMQError connecting to {tracker_ip}:{tracker_port} - {e}")
-
-            finally:
-                tracker_socket.close()
-                logger.debug(f"Se cerro la conexion del PEER  {self.ip}:{self.port} con el Tracker {tracker_ip}:{tracker_port}")
+            else:
+                logger.warning(f"No response from tracker {tracker_ip}:{tracker_port}")
 
         return peers
 
-        #     tracker_socket.connect(f"tcp://{tracker_ip}:{tracker_port}")
-        #     request = {"action": "get_peers", "pieces_sha1": torrent_info.metainfo['info']['pieces']}
-        #     tracker_socket.send_json(request)
-        #     response = tracker_socket.recv_json()
-        #     peers.extend(response.get('peers', []))
-        
-        # return peers
     
     def get_bit_field_of(self, info):
-        piece_manager = PieceManager(info, 'Client/client_files')
-        return {"bitfield": piece_manager.bitfield}
+        try:
+            # Validar que la información necesaria esté presente
+            if not info or 'pieces' not in info or 'piece length' not in info:
+                logger.error("Invalid torrent info provided for bitfield.")
+                return {"error": "Invalid torrent info"}
+
+            piece_manager = PieceManager(info, 'client_files')
+            return {"bitfield": piece_manager.bitfield}
+        except Exception as e:
+            logger.error(f"Error generating bitfield: {e}")
+            return {"error": "Error generating bitfield"}
+
+        # piece_manager = PieceManager(info, 'Client/client_files')
+        # return {"bitfield": piece_manager.bitfield}
 
     def download_file(self, dottorrent_file_path, save_at):
         logger.debug(f"METHOD: download_file")
@@ -225,111 +220,107 @@ class Client:
                 peer_for_download = random.choice(owners)
                 owners.remove(peer_for_download)
                 piece_manager_inst.clean_memory(rarest_piece)
-                self.download_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+                try:
+                    self.download_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+                except Exception as e:
+                    logger.error(f"Error downloading piece {rarest_piece} from {peer_for_download}: {e}")
+
                 break
 
     def find_rarest_piece(self, peers, torrent_info: TorrentInfo, owned_pieces):
-        logger.debug(f"METHOD: find_rarest_piece")
+        logger.debug(f"Pers en finrerestpiece {peers}")
         count_of_pieces = [0] * torrent_info.number_of_pieces
         owners = [[] for _ in range(torrent_info.number_of_pieces)]
+
         
         for ip, port in peers:
-            proxy_socket = self.context.socket(zmq.REQ)
-            proxy_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
-            proxy_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
-            
-            max_retries = 3
-
-            try:
-                proxy_socket.connect(f"tcp://{ip}:{port}")
-                
-                for attempt in range(max_retries):
-                    if self.is_socket_connected(proxy_socket):
-                        logger.warning(f"Server at {ip}:{port} is not alive")
-                        break
-                    else : 
-                        logger.warning(f"Server at {ip}:{port} is not alive")
-                    time.sleep(0.1)  # Esperar antes del siguiente intento
-                
-                else:
-                    logger.error(f"Failed to connect to {ip}:{port} after {max_retries} attempts.")
-                    continue
-                
-                request = {
+            request = {
                     "action": "get_bit_field",
                     "info": dict(torrent_info.metainfo['info'])
                 }
-                request['info'].pop('md5sum')
-                
-                proxy_socket.send_json(request)
-                response = proxy_socket.recv_json()
-                
+            request['info'].pop('md5sum')
+            response = self._send_data(request,ip,port)
+            
+            if response:
                 peer_bit_field = response.get('bitfield', [])
-                
                 for i in range(len(peer_bit_field)):
                     if peer_bit_field[i]:
                         count_of_pieces[i] += 1
                         owners[i].append((ip, port))
 
-            except zmq.ZMQError as e:
-                logger.error(f"ZMQError connecting to {ip}:{port} - {e}")
-            except Exception as e:
-                logger.error(f"An error occurred while getting bit field from {ip}:{port} - {e}")
-            
-            finally:
-                proxy_socket.close()
+            else :
+                logger.warning(f"No response from peer {ip}:{port} for bit field.")
 
-        rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        # encuentra la pieza mas rara        
+        rarest_piece = -1
+        for i, count in enumerate(count_of_pieces):
+            if not owned_pieces[i] and count > 0:
+                if rarest_piece == -1 or count < count_of_pieces[rarest_piece]:
+                    rarest_piece = i
+
+        return rarest_piece, owners[rarest_piece] if rarest_piece != -1 else []
+
+        # rarest_piece = count_of_pieces.index(min(count_of_pieces))
         
-        while owned_pieces[rarest_piece]:
-            count_of_pieces[rarest_piece] = math.inf
-            rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        # while owned_pieces[rarest_piece]:
+        #     count_of_pieces[rarest_piece] = math.inf
+        #     rarest_piece = count_of_pieces.index(min(count_of_pieces))
 
-        return rarest_piece, owners[rarest_piece]
+        # return rarest_piece, owners[rarest_piece]
 
     
         
     def get_block_of_piece(self, info: dict, piece_index: int, block_offset: int):
-        piece_manager = PieceManager(info['info'], 'Client/client_files')
-        return {"data": piece_manager.get_block_piece(piece_index, block_offset).data}   
+        try:
+            piece_manager = PieceManager(info, 'client_files')
+            block = piece_manager.get_block_piece(piece_index, block_offset)
+
+            # Asegurarse de que los datos estén codificados en Base64
+            return {"data": base64.b64encode(block.data).decode('utf-8')}
+        except Exception as e:
+            logger.error(f"Error retrieving block {block_offset} of piece {piece_index}: {e}")
+            return {"error": "Failed to retrieve block"}
+            # piece_manager = PieceManager(info['info'], 'Client/client_files')
+            # return {"data": piece_manager.get_block_piece(piece_index, block_offset).data}   
 
 
     def download_piece_from_peer(self, peer, torrent_info: TorrentInfo, piece_index: int,
                               piece_manager: PieceManager):
+        
         try:
-            proxy_socket = self.context.socket(zmq.REQ)
-            proxy_socket.setsockopt(zmq.RCVTIMEO, 1000)  # Timeout de 1 segundo para recibir
-            proxy_socket.setsockopt(zmq.SNDTIMEO, 1000)  # Timeout de 1 segundo para enviar
+            piece_size = (
+                torrent_info.file_size % torrent_info.piece_size
+                if piece_index == piece_manager.number_of_pieces - 1
+                else torrent_info.piece_size
+            )
             
-            proxy_socket.connect(f"tcp://{peer[0]}:{str(peer[1])}")
+            num_blocks = int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))
 
-            #conected = self.is_socket_connected(proxy_socket)
-
-            piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
-         
-            for i in range(int(math.ceil(float(piece_size) / DEFAULT_Block_SIZE))):
+            for i in range(num_blocks):
                 request = {
                     "action": "get_block",
                     "info": dict(torrent_info.metainfo['info']),
                     "piece_index": piece_index,
                     "block_offset": i * DEFAULT_Block_SIZE
                 }
-                request['info'].pop('md5sum')
+                request['info'].pop('md5sum', None)
 
-                proxy_socket.send_json(request)
-                
-                #El problema es aqui
-                received_block = proxy_socket.recv_json()
+                response = self._send_data(request, peer[0], peer[1])
 
-                # Asegurar de que 'data' sea una cadena antes de decodificar
-                raw_data = base64.b64decode(received_block['data']['data'].encode('utf-8'))  # Decodifica a bytes
-                piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
+                if response and 'data' in response:
+                    try:
+                        # Decodificar el bloque recibido
+                        raw_data = base64.b64decode(response['data'].encode('utf-8'))
+                        piece_manager.receive_block_piece(piece_index, i * DEFAULT_Block_SIZE, raw_data)
+                        logger.debug(f"Successfully downloaded block {i} of piece {piece_index} from {peer}")
+                    except Exception as e:
+                        logger.error(f"Error decoding/storing block {i} of piece {piece_index} from {peer}: {e}")
+                else:
+                    logger.warning(f"Failed to receive block {i} of piece {piece_index} from {peer}")
+
         except Exception as e:
             logger.error(f"Error downloading piece {piece_index} from {peer}: {e}")
 
-        finally:
-            proxy_socket.close()    
-    
 
     def find_random_piece(self, peers, torrent_info: TorrentInfo,
                           owned_pieces):
@@ -370,26 +361,6 @@ class Client:
 
         return None, None 
     
-    def is_server_alive(self,socket):
-      try:
-          socket.send_json({"action": "ping"})
-          response=socket.recv_json(flags=zmq.NOBLOCK)  
-          return True
-      except zmq.Again:
-          logger.warning(f"Socket not ready for {socket} - retrying...")
-          return False
-      except zmq.ZMQError as e:
-          logger.error(f"ZMQError occurred: {e}")
-          return False
     
-    def is_socket_connected(self, socket):
-        try:
-            socket.send_json({"action": "ping"})
-            response = socket.recv_json(flags=zmq.NOBLOCK)  # Non-blocking receive
-            return True
-        except zmq.Again:
-            logger.warning(f"Socket not ready for {socket} - retrying...")
-            return False
-        except zmq.ZMQError as e:
-            logger.error(f"ZMQError occurred: {e}")
-            return False
+
+   
