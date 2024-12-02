@@ -102,8 +102,8 @@ class Tracker:
 
         # Si no se encontraron nodos, inicializar un nuevo anillo
         logger.info("No se encontraron nodos, inicializando nuevo anillo.")
-        self.chord_node.create()
-        
+        #self.chord_node.create()
+
     def run(self):
         logger.debug(f"Tracker corriendo en {self.address}")
         retry_attempts = 0
