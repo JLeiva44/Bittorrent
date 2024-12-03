@@ -110,7 +110,7 @@ class ChordNode:
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
-        logger.debug(f"CHordnode : {self.ip}:{self.port}")
+        logger.debug(f"Inicializando nodo con ID={self.id} en {self.ip}:{self.port}")
         self.ref = ChordNodeReference(self.ip, self.port)
         self.succ = self.ref  # Initial successor is itself
         self.pred = None  # Initially no predecessor
@@ -222,36 +222,116 @@ class ChordNode:
                 self.pred = None
             time.sleep(10)
 
+    # def store_key(self, key: str, value):
+    #     with self.lock:
+    #         key_hash = getShaRepr(key)
+    #         node = self.find_succ(key_hash)
+
+    #         try:
+    #             # Almacena en el nodo principal
+    #             node.store_key(key, value)
+    #             logger.info(f"Clave '{key}' almacenada en el nodo {node.id}.")
+
+    #             # Replicación en el sucesor
+    #             if node.succ and node.succ.id != node.id :#and node.succ.is_alive():
+    #                 node.succ.store_key(key, value)
+    #                 logger.info(f"Clave '{key}' replicada en el nodo sucesor {node.succ.id}.")
+
+    #             # Replicación en el sucesor del sucesor
+    #             if node.succ and node.succ.succ and node.succ.succ.id != node.id :#and node.succ.succ.is_alive():
+    #                 node.succ.succ.store_key(key, value)
+    #                 logger.info(f"Clave '{key}' replicada en el nodo sucesor del sucesor {node.succ.succ.id}.")
+
+    #         except Exception as e:
+    #             logger.error(f"Error al almacenar la clave '{key}' en la red: {e}")
+
+    # def retrieve_key(self, key: str) -> str:
+    #     with self.lock:
+    #         key_hash = getShaRepr(key)
+    #         node = self.find_succ(key_hash)
+
+    #         try:
+    #             # Intenta recuperar la clave del nodo principal
+    #             value = node.retrieve_key(key)
+    #             if value is not None:
+    #                 logger.info(f"Clave '{key}' encontrada en el nodo {node.id}.")
+    #                 return value
+
+    #             # Si no está en el nodo principal, busca en el sucesor
+    #             if node.succ: # if node.succ and node.succ.is_alive()
+    #                 value = node.succ.retrieve_key(key)
+    #                 if value is not None:
+    #                     logger.info(f"Clave '{key}' encontrada en el nodo sucesor {node.succ.id}.")
+    #                     return value
+
+    #             # Si no está en el sucesor, busca en el sucesor del sucesor
+    #             if node.succ and node.succ.succ : # if node.succ and node.succ.succ and node.succ.succ.is_alive()
+    #                 value = node.succ.succ.retrieve_key(key)
+    #                 if value is not None:
+    #                     logger.info(f"Clave '{key}' encontrada en el nodo sucesor del sucesor {node.succ.succ.id}.")
+    #                     return value
+
+    #             # Si no se encuentra en ninguno, retorna None
+    #             logger.warning(f"Clave '{key}' no encontrada en la red.")
+    #             return None
+
+    #         except Exception as e:
+    #             logger.error(f"Error al recuperar la clave '{key}' de la red: {e}")
+    #             return None
+
+    
+    
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
-        with self.lock:    
-            key_hash = getShaRepr(key)
-            node = self.find_succ(key_hash)
-            node.store_key(key, value)
+        with self.lock: 
+            try:
+                logger.info(f"Almacenando clave '{key}' con valor '{value}'...")   
+                key_hash = getShaRepr(key)
+                node = self.find_succ(key_hash)
+                node.store_key(key, value)
+                logger.debug(f"Clave '{key}' almacenada en nodo {node.id}.")
 
-            # Replicacion de la clave en el succesor y el sucesor del sucesor
-            if node.succ.id != node.id:
-                node.succ.store_key(key,value)
-            if node.succ.succ.id != node.id:
-                node.succ.succ.store_key(key,value)    
+                # Replicacion de la clave en el succesor y el sucesor del sucesor
+                if node.succ.id != node.id:
+                    node.succ.store_key(key,value)
+                    logger.debug(f"Clave '{key}' replicada en nodo sucesor {node.succ.id}.")
+                if node.succ.succ.id != node.id:
+                    node.succ.succ.store_key(key,value)    
+                    logger.debug(f"Clave '{key}' replicada en nodo sucesor del sucesor {node.succ.succ.id}.")
+                
+            except Exception as e:
+                logger.error(f"Error al almacenar la clave '{key}': {e}")
 
     # Retrieve key method to get a value for a given key
     def retrieve_key(self, key: str) -> str:
         with self.lock:
-            key_hash = getShaRepr(key)
-            node = self.find_succ(key_hash)
-            return node.retrieve_key(key)
-
+            try:
+                logger.info(f"Recuperando clave '{key}'...")    
+                key_hash = getShaRepr(key)
+                node = self.find_succ(key_hash)
+                value = node.retrieve_key(key)
+                if value:
+                    logger.info(f"Clave '{key}' encontrada con valor '{value}' en nodo {node.id}.")
+                else:
+                    logger.warning(f"Clave '{key}' no encontrada.")
+                return value
+            except Exception as e:
+                logger.error(f"Error al recuperar la clave '{key}': {e}")
+                return None
+            
     # Start server method to handle incoming requests
     def start_server(self):
+        logger.info(f"Iniciando servidor CHORD en {self.ip}:{self.port}...")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.ip, self.port))
             s.listen(15)
+            logger.info("Servidor iniciado y esperando conexiones...")
 
             while True:
                 try:
                     conn, addr = s.accept()
+                    logger.debug(f"Nueva conexión aceptada desde {addr}")
                     threading.Thread(target=self.handle_connection, args=(conn, addr), daemon=True).start()
                 except Exception as e:
                     logger.error(f"Error acepting new connextion: {e}")    
@@ -313,15 +393,18 @@ class ChordNode:
     def handle_connection(self, conn, addr):
             try:
                 data = conn.recv(1024).decode().split(',')
+                logger.debug(f"Datos recibidos de {addr}: {data}")
                 option = int(data[0])
                 response = None
 
                 if option == FIND_SUCCESSOR:
                     id = int(data[1])
                     response = self.find_succ(id)
+                    logger.info(f"Successor de ID={id} encontrado: {response}.")
                 elif option == FIND_PREDECESSOR:
                     id = int(data[1])
                     response = self.find_pred(id)
+                    logger.info(f"Predecessor de ID={id} encontrado: {response}.")
                 elif option == GET_SUCCESSOR:
                     response = self.succ if self.succ else self.ref
                 elif option == GET_PREDECESSOR:
@@ -330,12 +413,15 @@ class ChordNode:
                     id = int(data[1])
                     ip = data[2]
                     self.notify(ChordNodeReference(ip, self.port))
+                    logger.info(f"Nodo notificado: ID={id}, IP={ip}.")
                 elif option == STORE_KEY:
                     key, value = data[1], data[2]
                     self.data.setdefault(key, []).append(value)
+                    logger.info(f"Clave '{key}' con valor '{value}' almacenada localmente.")
                 elif option == RETRIEVE_KEY:
                     key = data[1]
                     response = self.data.get(key, '')
+                    logger.info(f"Clave '{key}' recuperada con valor '{response}'.")
 
                 if response:
                     conn.sendall(str(response).encode())

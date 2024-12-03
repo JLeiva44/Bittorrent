@@ -30,7 +30,7 @@ class Client:
         self.lock = threading.Lock() # Para sincronizar recursos compartidos
 
         logger.debug(f"Strating PeerServerThread")
-        threading.Thread(target=self.run_server, daemon=True).start() # Start server thread
+        
     
     def _send_data(self,request,ip, port, timeout = 5000) -> bytes:
         """Method for sending data to a Peer using ZMQ with timeout"""
