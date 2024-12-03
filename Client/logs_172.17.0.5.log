@@ -1,6 +1,0 @@
-2024-12-03 17:41:00,579 - DEBUG - Strating PeerServerThread
-2024-12-03 17:41:00,580 - DEBUG - Tracker: [('172.17.0.4', '8080')]
-2024-12-03 17:41:00,580 - DEBUG - Connecting peer 172.17.0.5:8080 to tracker 172.17.0.4:8080
-2024-12-03 17:41:05,585 - WARNING - Timeout communicating with 172.17.0.4:8080 - Resource temporarily unavailable
-2024-12-03 17:41:05,585 - DEBUG - Tracker response: None
-2024-12-03 17:41:05,585 - INFO - Archivo subido y añadido a los trackers.
