@@ -20,7 +20,7 @@ def main():
         logger.info("--------------LOGER DEL TESTER-----------------")
         logger.info(f"Iniciando el TRACKER en {args.ip}:{args.port} con un anillo Chord de {args.chord_m} bits...")
         # Crear instancia del Tracker
-        tracker = Tracker(ip=args.ip, port=str(args.port), chord_m=args.chord_m)
+        tracker = Tracker(ip=args.ip)  #, port=str(args.port), chord_m=args.chord_m)
         logger.info("Tracker inicializado exitosamente. Esperando conexiones...")
 
         # Vamos a conectarnos a los demas

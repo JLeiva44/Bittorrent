@@ -32,7 +32,7 @@ class Client:
         logger.debug(f"Strating PeerServerThread")
         
     
-    def _send_data(self,request,ip, port, timeout = 5000) -> bytes:
+    def _send_data(self,request,ip, port, timeout = 10000) -> bytes:
         """Method for sending data to a Peer using ZMQ with timeout"""
         try:
             with self.context.socket(zmq.REQ) as s:

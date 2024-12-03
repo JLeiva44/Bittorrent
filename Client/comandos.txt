@@ -1,8 +1,19 @@
 # Subir un archivo a un tracker
-python client.py upload --path "client_files/test_file.txt" --tracker-urls "192.168.1.2:8080" "192.168.1.3:8081"
+upload client_files/test_file.txt 172.17.0.3
+
+upload client_files/archivo1.txt 172.17.0.3
+
+upload client_files/archivo2.txt 172.17.0.3
+
+download --torrent-info "torrent_files/test_file.torrent" --save-at "downloaded_files"
+
+download torrent_files/test_file.torrent downloaded_files
+
+download torrent_files/archivo1.torrent downloaded_files
+
 
 # Descargar un archivo usando un archivo .torrent
-python client.py download --torrent-info "torrent_files/test_file.torrent" --save-at "downloaded_files"
+download --torrent-info "torrent_files/test_file.torrent" --save-at "downloaded_files"
 
 # Conectar a un tracker
 python client.py connect-tracker --torrent-info "torrent_files/test_file.torrent" --tracker-urls "192.168.1.2:8080" "192.168.1.3:8081"

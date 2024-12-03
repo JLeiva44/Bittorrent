@@ -27,10 +27,32 @@ def sha256_hash(s):
 def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
-def bcast_call(port, msg):
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.sendto(msg.encode(), ("172.17.255.255", port))
+def bcast_call(port, msg, attempts=3, delay=2):
+    """
+    Enviar un mensaje de broadcast con un número fijo de intentos.
+
+    :param port: Puerto de destino.
+    :param msg: Mensaje a enviar.
+    :param attempts: Número de intentos máximos de reenvío.
+    :param delay: Tiempo de espera entre intentos fallidos (en segundos).
+    """
+    for attempt in range(attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                s.sendto(msg.encode(), ("172.17.255.255", port))
+                print(f"Mensaje enviado en intento {attempt + 1}")
+                return  # Salir si el envío fue exitoso
+        except Exception as e:
+            print(f"Error al enviar el mensaje en intento {attempt + 1}: {e}")
+            if attempt < attempts - 1:
+                time.sleep(delay)  # Esperar antes de reintentar
+    print(f"No se pudo enviar el mensaje tras {attempts} intentos")
+
+# def bcast_call(port, msg):
+#     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+#         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+#         s.sendto(msg.encode(), ("172.17.255.255", port))
 
 def retry_on_connection_refused(func, *args, max_retries=5, delay=2, **kwargs):
         """
@@ -64,7 +86,7 @@ def retry_on_connection_refused(func, *args, max_retries=5, delay=2, **kwargs):
         raise ConnectionRefusedError(f"No se pudo conectar tras {max_retries} intentos.")
 
 class Tracker:
-    def __init__(self, ip, port, chord_m = 8, broadcast_port = 5555 ):
+    def __init__(self, ip, port = 8080, chord_m = 8, broadcast_port = 5555 ):
         logger.info("------------------- LOGER DEL TRACKER-----------------")
         self.ip = str(ip)
         self.port = port
@@ -118,7 +140,7 @@ class Tracker:
     def print_current_leader(self):
         while True:
             logger.info(f"******************LIDER ACTUAL ES : {self.broadcast_elector.Leader}******************")
-            time.sleep(3000)
+            time.sleep(30)
     
     def autodiscover_and_join(self):
         try:
