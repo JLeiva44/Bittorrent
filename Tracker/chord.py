@@ -29,6 +29,8 @@ class ChordNodeReference:
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
+        logger.debug(f"CHordReference {self,ip, self.port}")
+
 
     def _send_data(self, op: int, data: str = None, retries : int = 3) -> bytes:
         """Envia datos a otro nodo con manejo de reintentos."""
@@ -63,6 +65,7 @@ class ChordNodeReference:
     @property
     def succ(self) -> 'ChordNodeReference':
         response = self._send_data(GET_SUCCESSOR).decode().split(',')
+        logger.debug(f"Pidiendo el succ de {self.ip}")
         return ChordNodeReference(response[1], self.port)
 
     # Property to get the predecessor of the current node
@@ -107,6 +110,7 @@ class ChordNode:
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
+        logger.debug(f"CHordnode : {self.ip}:{self.port}")
         self.ref = ChordNodeReference(self.ip, self.port)
         self.succ = self.ref  # Initial successor is itself
         self.pred = None  # Initially no predecessor
@@ -151,14 +155,19 @@ class ChordNode:
     # Method to join a Chord network using 'node' as an entry point
     def join(self, node: 'ChordNodeReference'):
         """Unirse a un anillo existente."""
+        logger.debug("Estoy en el join")
         with self.lock:
-            if node:
-                self.pred = None
-                self.succ = node.find_successor(self.id)
-                self.succ.notify(self.ref)
-            else:
-                self.succ = self.ref
-                self.pred = None
+            try:
+                if node:
+                    self.pred = None
+                    self.succ = node.find_successor(self.id)
+                    self.succ.notify(self.ref)
+                else:
+                    self.succ = self.ref
+                    self.pred = None
+                logger.debug(f"Adyacentes de {self.ip}:{self.port} :: succ: {self.succ.ip} y pred: {self.pred.ip}" )    
+            except Exception as e:
+                logger.error(f"Error en el join: {e}")        
 
     def leave(self):
         """Salir del anillo Chord."""
@@ -173,13 +182,14 @@ class ChordNode:
         while True:
             try:
                 with self.lock:
-                     if self.succ.id != self.id:
+                    if self.succ.id != self.id:
                         x = self.succ.pred
+                        logger.debug(f"X es {x}")
                         if x and self._inbetween(x.id, self.id, self.succ.id):
                             self.succ = x
                         self.succ.notify(self.ref)
             except Exception as e:
-                print(f"Error in stabilize: {e}")
+                logger.error(f"Error in stabilize: {e}")
             logger.info(f"Stabilized: successor={self.succ}, predecessor={self.pred}")    
 
             time.sleep(10)
@@ -237,7 +247,7 @@ class ChordNode:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.ip, self.port))
-            s.listen(10)
+            s.listen(15)
 
             while True:
                 try:

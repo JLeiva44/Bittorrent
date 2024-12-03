@@ -16,6 +16,7 @@ PORT2 = '8001'
 CONTAINER_NAME = os.getenv("HOSTNAME")
 MAX_RETRIES = 3
 BROADCAST_IP = '172.17.255.255'
+DEFAULT_TIMEOUT = 5  # Timeout en segundos
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class Tracker:
         self.ip = str(ip)
         self.port = port
         self.address = "tcp://" + self.ip + ":" + str(self.port)
+        logger.info(f"MY adress: {self.address}")
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
         self.host_name = socket.gethostbyname(socket.gethostname())
         self.broadcast_port = broadcast_port
@@ -85,39 +87,43 @@ class Tracker:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(self.address)
-        self.socket.RCVTIMEO = 5000  # Timeout de 5 segundos para evitar bloqueos
+        #self.socket.listen(1000)
+        self.socket.RCVTIMEO = DEFAULT_TIMEOUT * 5  # Timeout en milisegundos
         
         # Líder actual
         self.broadcast_elector = type('', (), {})()  # Objeto vacío
         self.broadcast_elector.Leader = None
         self.broadcast_elector.id = None
-
-        
         self.database = {}
         self.trackers = set()
         self.lock = threading.Lock()  # Para sincronizar el acceso a la base de datos
         
+        self._start_communication_threads()
+        
+            
+    def _start_communication_threads(self):
+        """Inicia los hilos de com del Tracker"""
         # Crear hilos para servidor de broadcast y ejecucion Principal
         threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
-        # threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
-        # time.sleep(2)
-        # #threading.Thread(target=self.broadcast_announce, daemon=True).start()
-        # self.start_periodic_broadcast()
-        # time.sleep(2)
-        # threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
+        threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
+        time.sleep(2)
+        self.start_periodic_broadcast()
+        time.sleep(2)
+        threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
 
-        # time.sleep(3)
-        # threading.Thread(target=self.print_current_leader, daemon=True).start()
-    
+        time.sleep(3)
+        threading.Thread(target=self.print_current_leader, daemon=True).start()
+
+
     def print_current_leader(self):
         while True:
             logger.info(f"******************LIDER ACTUAL ES : {self.broadcast_elector.Leader}******************")
-            time.sleep(10)
+            time.sleep(3000)
     
     def autodiscover_and_join(self):
         try:
             logger.info(f"Nuevo nodo en la red: {self.ip}:{self.port}")
-            max_wait_time = 10  # Tiempo máximo de espera
+            max_wait_time = 4  # Tiempo máximo de espera
             start_time = time.time()
 
             while True:
@@ -152,7 +158,6 @@ class Tracker:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             s.bind((BROADCAST_IP, self.broadcast_port))  # Escucha en todos los interfaces para el puerto especificado
-
             while True:
                 try:
                     data, addr = s.recvfrom(1024)  # Tamaño del búfer: 1024 bytes
@@ -273,7 +278,9 @@ class Tracker:
         try:
             if leader:
                 msg = f"NEWLEADER,{self.node_id},{self.ip},{self.port}"
-                logger.info(f"Anunciando nuevo líder: {msg}")
+                logger.info(f"Anunciando nuevo líder: {self.node_id}")
+                self.broadcast_elector.Leader = self.ip
+                self.broadcast_elector.id = self.node_id
             else:
                 msg = f"NODE,{self.node_id},{self.ip},{self.port}"
                 logger.info(f"Anunciando nodo: {msg}")
@@ -320,7 +327,7 @@ class Tracker:
 
             except zmq.Again:
                 # Timeout alcanzado, continuar escuchando
-                logger.debug("No se recibió mensaje dentro del período de espera.")
+                #logger.debug("No se recibió mensaje dentro del período de espera.")
                 continue
 
             except zmq.ZMQError as e:
