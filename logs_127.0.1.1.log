@@ -1,0 +1,14 @@
+2024-12-02 01:20:01,411 - INFO - --------------LOGER DEL TESTER-----------------
+2024-12-02 01:20:01,411 - INFO - Iniciando el TRACKER en 127.0.1.1:8080 con un anillo Chord de 8 bits...
+2024-12-02 01:20:01,411 - INFO - ------------------- LOGER DEL TRACKER-----------------
+2024-12-02 01:20:01,411 - INFO - ------------------- LOGGER DEL CHORD-------------------
+2024-12-02 01:20:01,411 - INFO - Stabilized: successor=122242304375468833021506250561643906195271447570,127.0.1.1,8001, predecessor=None
+2024-12-02 01:20:01,413 - DEBUG - Tracker corriendo en tcp://127.0.1.1:8080
+2024-12-02 01:20:01,413 - DEBUG - Escuchando broadcast en puerto 5555
+2024-12-02 01:20:01,414 - DEBUG - Iniciando autodescubrimiento...
+2024-12-02 01:20:01,414 - DEBUG - Mensaje de broadcast recibido: {'type': 'DISCOVER_TRACKERS'}
+2024-12-02 01:20:04,414 - INFO - No se encontraron nodos, inicializando nuevo anillo.
+2024-12-02 01:20:04,414 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
+2024-12-02 01:20:06,423 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-02 01:20:11,424 - INFO - Stabilized: successor=122242304375468833021506250561643906195271447570,127.0.1.1,8001, predecessor=None
+2024-12-02 01:20:11,439 - DEBUG - No se recibió mensaje dentro del período de espera.
