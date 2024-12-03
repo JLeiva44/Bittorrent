@@ -1,7 +1,7 @@
 import argparse
 import logging
 #from Client.bclient_logger import logger  # Asegúrate de tener configurado este logger
-from client import Client
+from client2 import Client # este es el cliente viejo
 import socket
 
 logging.basicConfig(level=logging.DEBUG,filename=f'logs_{socket.gethostbyname(socket.gethostname())}.log',filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
