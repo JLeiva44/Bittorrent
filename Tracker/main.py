@@ -3,6 +3,10 @@ import logging
 import socket
 from tracker import Tracker  # Asegúrate de que el módulo de tu clase Tracker esté correctamente referenciado.
 from tracker_logger import logger
+from chord import ChordNode, ChordNodeReference
+
+addresses = ['127.17.0.3','127.17.0.3',"127.17.0.2"]
+
 def main():
     # Parser para argumentos desde la línea de comandos
     parser = argparse.ArgumentParser(description="Inicia el servidor del Tracker.")
@@ -13,10 +17,13 @@ def main():
     args = parser.parse_args()
 
     try:
+        logger.info("--------------LOGER DEL TESTER-----------------")
         logger.info(f"Iniciando el TRACKER en {args.ip}:{args.port} con un anillo Chord de {args.chord_m} bits...")
         # Crear instancia del Tracker
         tracker = Tracker(ip=args.ip, port=str(args.port), chord_m=args.chord_m)
         logger.info("Tracker inicializado exitosamente. Esperando conexiones...")
+
+        # Vamos a conectarnos a los demas
         
         # Mantener el proceso activo
         while True:
