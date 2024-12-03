@@ -155,6 +155,7 @@ class Client:
         self.update_trackers(trackers, sha1_hash)
 
     def update_trackers(self, trackers, sha1, remove: bool = False):
+        logger.debug(f"Tracker: {trackers}")
         for tracker_ip, tracker_port in trackers:
             self.connect_to_tracker(tracker_ip, tracker_port, sha1, remove)    
 

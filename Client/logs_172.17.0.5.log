@@ -1,5 +1,6 @@
-2024-12-03 14:01:25,594 - DEBUG - Starting Client at 172.17.0.5:8080
-2024-12-03 14:01:25,595 - DEBUG - Server running at 172.17.0.5:8080
-2024-12-03 14:01:25,595 - DEBUG - Creating .torrent file...
-2024-12-03 14:01:25,645 - DEBUG - .torrent file created with SHA1 hash: f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
-2024-12-03 14:01:25,645 - INFO - Archivo subido y añadido a los trackers.
+2024-12-03 17:41:00,579 - DEBUG - Strating PeerServerThread
+2024-12-03 17:41:00,580 - DEBUG - Tracker: [('172.17.0.4', '8080')]
+2024-12-03 17:41:00,580 - DEBUG - Connecting peer 172.17.0.5:8080 to tracker 172.17.0.4:8080
+2024-12-03 17:41:05,585 - WARNING - Timeout communicating with 172.17.0.4:8080 - Resource temporarily unavailable
+2024-12-03 17:41:05,585 - DEBUG - Tracker response: None
+2024-12-03 17:41:05,585 - INFO - Archivo subido y añadido a los trackers.

@@ -165,7 +165,7 @@ class ChordNode:
                 else:
                     self.succ = self.ref
                     self.pred = None
-                logger.debug(f"Adyacentes de {self.ip}:{self.port} :: succ: {self.succ.ip} y pred: {self.pred.ip}" )    
+                #logger.debug(f"Adyacentes de {self.ip}:{self.port} :: succ: {self.succ.ip} y pred: {self.pred.ip}" )    
             except Exception as e:
                 logger.error(f"Error en el join: {e}")        
 

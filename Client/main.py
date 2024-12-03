@@ -22,53 +22,62 @@ def main():
     
     args = parser.parse_args()
 
-    # Configurar el cliente
-    client = Client(args.ip, str(args.port), args.peer_id)
+    try:
+        # Configurar el cliente
+        client = Client(args.ip, str(args.port), args.peer_id)
 
-    # Ejecutar el comando
-    if args.command == "upload":
-        if not args.path or not args.tracker_urls:
-            logger.error("Para subir un archivo necesitas proporcionar --path y --tracker-urls")
-            return
-        
-        client.upload_file(args.path, args.tracker_urls)
-        logger.info("Archivo subido y añadido a los trackers.")
+        # Ejecutar el comando
+        if args.command == "upload":
+            if not args.path or not args.tracker_urls:
+                logger.error("Para subir un archivo necesitas proporcionar --path y --tracker-urls")
+                return
+            
+            client.upload_file(args.path, args.tracker_urls)
+            logger.info("Archivo subido y añadido a los trackers.")
 
-    elif args.command == "download":
-        if not args.torrent_info or not args.save_at:
-            logger.error("Para descargar un archivo necesitas proporcionar --path y --save-at")
-            return
-        client.download_file(args.torrent_info, args.save_at)
-        logger.info("Descarga completada.")
+        elif args.command == "download":
+            if not args.torrent_info or not args.save_at:
+                logger.error("Para descargar un archivo necesitas proporcionar --path y --save-at")
+                return
+            client.download_file(args.torrent_info, args.save_at)
+            logger.info("Descarga completada.")
 
-    elif args.command == "connect-tracker":
-        if not args.torrent_info or not args.tracker_urls:
-            logger.error("Para conectar a un tracker necesitas proporcionar --torrent-info y --tracker-urls")
-            return
-        trackers = [tuple(url.split(':')) for url in args.tracker_urls]
-        for tracker_ip, tracker_port in trackers:
-            client.connect_to_tracker(tracker_ip, int(tracker_port), args.torrent_info, args.remove)
-        logger.info("Conexión con trackers completada.")
+        elif args.command == "connect-tracker":
+            if not args.torrent_info or not args.tracker_urls:
+                logger.error("Para conectar a un tracker necesitas proporcionar --torrent-info y --tracker-urls")
+                return
+            trackers = [tuple(url.split(':')) for url in args.tracker_urls]
+            for tracker_ip, tracker_port in trackers:
+                client.connect_to_tracker(tracker_ip, int(tracker_port), args.torrent_info, args.remove)
+            logger.info("Conexión con trackers completada.")
 
-    elif args.command == "get-peers":
-        print("Entrando en get-peers")
-        if not args.torrent_info:
-            logger.error("Para obtener peers necesitas proporcionar --torrent-info")
-            return
-        from torrent_utils import TorrentReader
-        reader = TorrentReader(args.torrent_info)
-        info = reader.build_torrent_info()
-        peers = client.get_peers_from_tracker(info)
-        logger.info(f"Peers obtenidos: {peers}")
+        elif args.command == "get-peers":
+            print("Entrando en get-peers")
+            if not args.torrent_info:
+                logger.error("Para obtener peers necesitas proporcionar --torrent-info")
+                return
+            from torrent_utils import TorrentReader
+            reader = TorrentReader(args.torrent_info)
+            info = reader.build_torrent_info()
+            peers = client.get_peers_from_tracker(info)
+            logger.info(f"Peers obtenidos: {peers}")
 
-    elif args.command == "test-request":
-        if not args.tracker_urls:
-            logger.error("Para probar una solicitud necesitas proporcionar --tracker-urls")
-            return
-        for tracker in args.tracker_urls:
-            ip, port = tracker.split(":")
-            client.request_test(ip, int(port))
-        logger.info("Pruebas completadas.")
+        elif args.command == "test-request":
+            if not args.tracker_urls:
+                logger.error("Para probar una solicitud necesitas proporcionar --tracker-urls")
+                return
+            for tracker in args.tracker_urls:
+                ip, port = tracker.split(":")
+                client.request_test(ip, int(port))
+            logger.info("Pruebas completadas.")
+
+        while True:
+            pass    
+
+    except KeyboardInterrupt:
+        logger.info("El servidor del CLiente ha sido detenido manualmente.")
+    except Exception as e:
+        logger.error(f"Error crítico en el Cliente: {e}")
 
 if __name__ == "__main__":
     main()
