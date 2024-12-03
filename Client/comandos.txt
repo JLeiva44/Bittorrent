@@ -1,0 +1,17 @@
+# Subir un archivo a un tracker
+python client.py upload --path "client_files/test_file.txt" --tracker-urls "192.168.1.2:8080" "192.168.1.3:8081"
+
+# Descargar un archivo usando un archivo .torrent
+python client.py download --torrent-info "torrent_files/test_file.torrent" --save-at "downloaded_files"
+
+# Conectar a un tracker
+python client.py connect-tracker --torrent-info "torrent_files/test_file.torrent" --tracker-urls "192.168.1.2:8080" "192.168.1.3:8081"
+
+# Obtener la lista de peers desde un tracker
+python client.py get-peers --torrent-info "torrent_files/test_file.torrent"
+
+# Realizar una solicitud de prueba a un tracker
+python client.py test-request --tracker-urls "192.168.1.2:8080" "192.168.1.3:8081"
+
+# Eliminar un peer de un tracker
+python client.py connect-tracker --torrent-info "torrent_files/test_file.torrent" --tracker-urls "192.168.1.2:8080" --remove
