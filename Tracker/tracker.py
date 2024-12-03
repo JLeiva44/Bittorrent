@@ -120,7 +120,6 @@ class Tracker:
             max_wait_time = 10  # Tiempo máximo de espera
             start_time = time.time()
 
-            logger.info("Buscando líder...")
             while True:
                 if self.broadcast_elector.Leader:
                     # Si el nodo actual detecta un líder
@@ -130,7 +129,7 @@ class Tracker:
                         self.broadcast_announce(leader=True)
                     else:
                         logger.info(f"Uniéndose al líder existente en {leader_ip}")
-                        self.join(leader_ip)
+                        self.chord_node.join(ChordNodeReference(leader_ip))
                     break
 
                 # Si el tiempo de espera expira, el nodo se convierte en líder
@@ -165,7 +164,7 @@ class Tracker:
                     logger.error(f"Error al escuchar mensajes de broadcast: {e}", exc_info=True)
 
     def handle_broadcast_message(self, msg, sender_ip):
-        logger.info(f"Mensaje de broadcast recibido: {msg} de {sender_ip}")
+        #logger.info(f"Mensaje de broadcast recibido: {msg} de {sender_ip}")
         try:
             if msg.startswith("NODE"):
                 _, node_id, node_ip, node_port = msg.split(",")
@@ -183,6 +182,7 @@ class Tracker:
                         #self.handle_leadership_change(leader_ip, leader_id)
                         self.broadcast_elector.Leader = leader_ip
                         self.broadcast_elector.id = leader_id
+                        self.chord_node.join(ChordNodeReference(leader_ip))
                     elif leader_id < self.node_id:
                         # Anunciarse como líder si se recibe un líder con ID menor
                         self.broadcast_announce(leader=True)
@@ -233,7 +233,7 @@ class Tracker:
                 # Si este nodo era el líder anterior, debe unirse al nuevo líder
                 if self.is_leader:
                     logger.info(f"Este nodo era el líder anterior. Ahora se unirá al nuevo líder en {node_ip}.")
-                    self.join(node_ip)
+                    self.chord_node.join(ChordNodeReference(node_ip))
             else :
                 bcast_call(self.broadcast_port,msg = '{}')
         time.sleep(2)            
