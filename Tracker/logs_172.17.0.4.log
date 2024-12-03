@@ -1,34 +1,218 @@
-2024-12-03 13:50:26,729 - INFO - --------------LOGER DEL TESTER-----------------
-2024-12-03 13:50:26,730 - INFO - Iniciando el TRACKER en 172.17.0.4:8080 con un anillo Chord de 8 bits...
-2024-12-03 13:50:26,730 - INFO - ------------------- LOGER DEL TRACKER-----------------
-2024-12-03 13:50:26,730 - INFO - ------------------- LOGGER DEL CHORD-------------------
-2024-12-03 13:50:26,730 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
-2024-12-03 13:50:26,731 - DEBUG - Tracker corriendo en tcp://172.17.0.4:8080
-2024-12-03 13:50:26,731 - INFO - Iniciando escucha de mensajes de broadcast...
-2024-12-03 13:50:28,733 - INFO - Anunciando nodo: NODE,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:28,734 - INFO - Mensaje recibido de 172.17.0.4: NODE,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:28,734 - INFO - Registrando nodo: ID=65998006513249297570773512209786737906581370924716034023415988547112362338663, IP=172.17.0.4, Port=8080
-2024-12-03 13:50:30,736 - INFO - Nuevo nodo en la red: 172.17.0.4:8080
-2024-12-03 13:50:30,736 - INFO - Mensaje recibido de 172.17.0.4: {}
-2024-12-03 13:50:31,737 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:33,741 - INFO - ******************LIDER ACTUAL ES : None******************
-2024-12-03 13:50:33,741 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
-2024-12-03 13:50:36,745 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
-2024-12-03 13:50:36,751 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:38,749 - INFO - Anunciando nodo: NODE,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:38,765 - INFO - Mensaje recibido de 172.17.0.4: NODE,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:38,765 - INFO - Registrando nodo: ID=65998006513249297570773512209786737906581370924716034023415988547112362338663, IP=172.17.0.4, Port=8080
-2024-12-03 13:50:40,777 - WARNING - No se detectó un líder. Convirtiéndome en líder.
-2024-12-03 13:50:40,782 - INFO - Anunciando nuevo líder: NEWLEADER,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:40,808 - INFO - Mensaje recibido de 172.17.0.4: {}
-2024-12-03 13:50:40,818 - INFO - Mensaje recibido de 172.17.0.4: NEWLEADER,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:40,823 - INFO - Nuevo líder detectado: 172.17.0.4 con ID 65998006513249297570773512209786737906581370924716034023415988547112362338663
-2024-12-03 13:50:41,766 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:43,757 - INFO - ******************LIDER ACTUAL ES : 172.17.0.4******************
-2024-12-03 13:50:46,776 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:48,781 - INFO - Anunciando nuevo líder: NEWLEADER,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:51,787 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:53,771 - INFO - ******************LIDER ACTUAL ES : 172.17.0.4******************
-2024-12-03 13:50:56,797 - DEBUG - No se recibió mensaje dentro del período de espera.
-2024-12-03 13:50:58,812 - INFO - Anunciando nuevo líder: NEWLEADER,65998006513249297570773512209786737906581370924716034023415988547112362338663,172.17.0.4,8080
-2024-12-03 13:50:59,861 - INFO - El servidor del Tracker ha sido detenido manualmente.
+2024-12-03 13:57:12,521 - INFO - --------------LOGER DEL TESTER-----------------
+2024-12-03 13:57:12,521 - INFO - Iniciando el TRACKER en 172.17.0.4:8080 con un anillo Chord de 8 bits...
+2024-12-03 13:57:12,521 - INFO - ------------------- LOGER DEL TRACKER-----------------
+2024-12-03 13:57:12,521 - INFO - ------------------- LOGGER DEL CHORD-------------------
+2024-12-03 13:57:12,522 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:57:12,523 - DEBUG - Tracker corriendo en tcp://172.17.0.4:8080
+2024-12-03 13:57:12,523 - INFO - Tracker inicializado exitosamente. Esperando conexiones...
+2024-12-03 13:57:17,533 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:22,537 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:57:22,542 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:27,553 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:32,552 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:57:32,563 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:37,573 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:42,567 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:57:42,583 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:47,593 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:52,582 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:57:52,604 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:57:57,614 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:02,607 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:02,624 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:07,634 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:12,622 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:12,644 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:17,654 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:22,637 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:22,664 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:27,674 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:32,652 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:32,684 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:37,699 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:42,667 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:42,709 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:47,719 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:52,682 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:58:52,729 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:58:57,735 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:02,697 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:02,745 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:07,755 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:12,718 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:12,770 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:17,780 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:22,737 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:22,790 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:27,800 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:32,752 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:32,810 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:37,820 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:42,768 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:42,830 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:47,840 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:52,788 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 13:59:52,855 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 13:59:57,865 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:02,798 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:02,875 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:07,890 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:12,813 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:12,900 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:17,915 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:22,828 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:22,925 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:27,935 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:32,843 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:32,945 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:37,960 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:42,858 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:42,970 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:47,980 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:52,873 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:00:52,990 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:00:58,000 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:02,888 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:03,010 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:08,026 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:12,900 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:13,035 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:18,051 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:22,915 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:23,060 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:28,070 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:32,930 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:33,080 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:38,090 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:42,951 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:43,100 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:48,110 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:52,960 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:01:53,120 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:01:58,130 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:02,976 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:03,140 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:08,150 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:12,990 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:13,160 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:18,170 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:23,005 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:23,180 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:28,190 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:33,020 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:33,200 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:38,216 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:43,035 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:43,225 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:48,232 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:53,050 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:02:53,247 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:02:58,262 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:03,065 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:03,277 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:08,292 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:13,080 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:13,307 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:18,317 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:23,095 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:23,327 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:28,337 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:33,120 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:33,347 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:38,357 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:43,135 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:43,367 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:48,377 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:53,150 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:03:53,387 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:03:58,402 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:03,165 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:03,417 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:08,427 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:13,180 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:13,437 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:18,447 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:23,195 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:23,457 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:28,467 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:33,215 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:33,477 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:38,492 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:43,235 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:43,502 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:48,513 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:53,250 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:04:53,523 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:04:58,533 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:03,266 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:03,544 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:08,553 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:13,280 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:13,563 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:18,573 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:23,295 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:23,583 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:28,593 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:33,310 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:33,603 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:38,613 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:43,325 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:43,623 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:48,633 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:53,340 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:05:53,644 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:05:58,654 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:03,360 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:03,664 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:08,674 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:13,375 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:13,684 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:18,694 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:23,390 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:23,704 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:28,714 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:33,405 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:33,724 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:38,734 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:43,417 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:43,744 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:48,755 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:53,432 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:06:53,763 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:06:58,773 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:03,447 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:03,783 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:08,793 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:13,462 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:13,803 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:18,813 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:23,477 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:23,823 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:28,833 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:33,497 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:33,843 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:38,859 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:43,517 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:43,869 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:48,879 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:53,532 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:07:53,890 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:07:58,905 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:03,552 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:03,915 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:08,925 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:13,559 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:13,935 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:18,945 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:23,574 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:23,956 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:28,966 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:33,589 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:33,976 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:38,986 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:43,604 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:43,997 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:49,006 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:53,619 - INFO - Stabilized: successor=475370831551898155779154965885400833172816669804,172.17.0.4,8001, predecessor=None
+2024-12-03 14:08:54,016 - DEBUG - No se recibió mensaje dentro del período de espera.
+2024-12-03 14:08:54,096 - INFO - El servidor del Tracker ha sido detenido manualmente.
