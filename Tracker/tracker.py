@@ -99,15 +99,15 @@ class Tracker:
         
         # Crear hilos para servidor de broadcast y ejecucion Principal
         threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
-        threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
-        time.sleep(2)
-        #threading.Thread(target=self.broadcast_announce, daemon=True).start()
-        self.start_periodic_broadcast()
-        time.sleep(2)
-        threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
+        # threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
+        # time.sleep(2)
+        # #threading.Thread(target=self.broadcast_announce, daemon=True).start()
+        # self.start_periodic_broadcast()
+        # time.sleep(2)
+        # threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
 
-        time.sleep(3)
-        threading.Thread(target=self.print_current_leader, daemon=True).start()
+        # time.sleep(3)
+        # threading.Thread(target=self.print_current_leader, daemon=True).start()
     
     def print_current_leader(self):
         while True:
