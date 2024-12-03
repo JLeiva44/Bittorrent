@@ -1,0 +1,5 @@
+2024-12-03 14:01:25,594 - DEBUG - Starting Client at 172.17.0.5:8080
+2024-12-03 14:01:25,595 - DEBUG - Server running at 172.17.0.5:8080
+2024-12-03 14:01:25,595 - DEBUG - Creating .torrent file...
+2024-12-03 14:01:25,645 - DEBUG - .torrent file created with SHA1 hash: f0f8c5a6c003bbfd8318431417bc400fcbbcba3e
+2024-12-03 14:01:25,645 - INFO - Archivo subido y añadido a los trackers.

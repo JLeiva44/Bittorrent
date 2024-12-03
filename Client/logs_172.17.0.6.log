@@ -1,0 +1,3 @@
+2024-12-03 14:07:15,829 - DEBUG - Starting Client at 172.17.0.6:8080
+2024-12-03 14:07:15,830 - DEBUG - Server running at 172.17.0.6:8080
+2024-12-03 14:07:15,830 - DEBUG - Reading .torrent file and initializing download...
