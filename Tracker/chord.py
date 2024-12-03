@@ -31,6 +31,7 @@ class ChordNodeReference:
         self.port = port
 
     def _send_data(self, op: int, data: str = None, retries : int = 3) -> bytes:
+        """Envia datos a otro nodo con manejo de reintentos."""
         for _ in range(retries):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -44,10 +45,12 @@ class ChordNodeReference:
             except Exception as e:
                 logger.warning(f"Retrying to send data to {self.ip}:{self.port} due to error: {e}")
                 time.sleep(1)
-        logger.error(f"Failed to send data to {self.ip}:{self.port} after {retries} retries")        
-
-    # Method to find the successor of a given id
+        logger.error(f"Failed to send data to {self.ip}:{self.port} after {retries} retries") 
+        raise Exception(f"No se pudo contactar nodo {self.ip}:{self.port}.")
+           
+    
     def find_successor(self, id: int) -> 'ChordNodeReference':
+        """Method to find the successor of a given id"""
         response = self._send_data(FIND_SUCCESSOR, str(id)).decode().split(',')
         return ChordNodeReference(response[1], self.port)
 
@@ -100,6 +103,7 @@ class ChordNodeReference:
 # Class representing a Chord node
 class ChordNode:
     def __init__(self, ip: str, port: int = 8001, m: int = 160):
+        logger.info("------------------- LOGGER DEL CHORD-------------------")
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
@@ -146,6 +150,7 @@ class ChordNode:
 
     # Method to join a Chord network using 'node' as an entry point
     def join(self, node: 'ChordNodeReference'):
+        """Unirse a un anillo existente."""
         with self.lock:
             if node:
                 self.pred = None
@@ -155,9 +160,16 @@ class ChordNode:
                 self.succ = self.ref
                 self.pred = None
 
+    def leave(self):
+        """Salir del anillo Chord."""
+        with self.lock:
+            if self.succ and self.pred:
+                # Reasignar claves y notificar nodos vecinos
+                self.pred.succ = self.succ
+                self.succ.pred = self.pred
 
-    # Stabilize method to periodically verify and update the successor and predecessor
     def stabilize(self):
+        """Verifica y ajusta sicesores/predecesores periodicamente."""
         while True:
             try:
                 with self.lock:
@@ -178,8 +190,8 @@ class ChordNode:
             if node.id!= self.id and (not self.pred or self._inbetween(node.id, self.pred.id, self.id)):
                 self.pred = node
 
-    # Fix fingers method to periodically update the finger table
     def fix_fingers(self):
+        """Actualiza periódicamente la tabla de dedos."""
         while True:
             try:
                 with self.lock:
@@ -189,8 +201,8 @@ class ChordNode:
                 logger.error(f"Error in fix_fingers: {e}")
             time.sleep(10)
 
-    # Check predecessor method to periodically verify if the predecessor is alive
     def check_predecessor(self):
+        """Comprueba si el predecesor sigue activo."""
         while True:
             try:
                 with self.lock:
@@ -202,21 +214,23 @@ class ChordNode:
 
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
-        key_hash = getShaRepr(key)
-        node = self.find_succ(key_hash)
-        node.store_key(key, value)
+        with self.lock:    
+            key_hash = getShaRepr(key)
+            node = self.find_succ(key_hash)
+            node.store_key(key, value)
 
-        # Replicacion de la clave en el succesor y el sucesor del sucesor
-        if node.succ.id != node.id:
-            node.succ.store_key(key,value)
-        if node.succ.succ.id != node.id:
-            node.succ.succ.store_key(key,value)    
+            # Replicacion de la clave en el succesor y el sucesor del sucesor
+            if node.succ.id != node.id:
+                node.succ.store_key(key,value)
+            if node.succ.succ.id != node.id:
+                node.succ.succ.store_key(key,value)    
 
     # Retrieve key method to get a value for a given key
     def retrieve_key(self, key: str) -> str:
-        key_hash = getShaRepr(key)
-        node = self.find_succ(key_hash)
-        return node.retrieve_key(key)
+        with self.lock:
+            key_hash = getShaRepr(key)
+            node = self.find_succ(key_hash)
+            return node.retrieve_key(key)
 
     # Start server method to handle incoming requests
     def start_server(self):
