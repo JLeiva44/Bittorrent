@@ -86,7 +86,7 @@ def retry_on_connection_refused(func, *args, max_retries=5, delay=2, **kwargs):
         raise ConnectionRefusedError(f"No se pudo conectar tras {max_retries} intentos.")
 
 class Tracker:
-    def __init__(self, ip, port = 8080, chord_m = 8, broadcast_port = 5555 ):
+    def __init__(self, ip, port = 8080, chord_m = 160, broadcast_port = 5555 ):
         logger.info("------------------- LOGER DEL TRACKER-----------------")
         self.ip = str(ip)
         self.port = port
@@ -118,7 +118,7 @@ class Tracker:
         self.broadcast_elector.id = None
         self.database = {}
         self.trackers = set()
-        self.lock = threading.Lock()  # Para sincronizar el acceso a la base de datos
+        #self.lock = threading.Lock()  # Para sincronizar el acceso a la base de datos
         
         self._start_communication_threads()
         
@@ -202,17 +202,17 @@ class Tracker:
                 _, leader_id, leader_ip, leader_port = msg.split(",")
                 leader_id = int(leader_id)
                 
-                with self.lock:
-                    # Solo actualizar si el líder actual es nulo o el nuevo líder tiene un ID más alto
-                    if not self.broadcast_elector.Leader or leader_id > self.broadcast_elector.id:
-                        logger.info(f"Nuevo líder detectado: {leader_ip} con ID {leader_id}")
-                        #self.handle_leadership_change(leader_ip, leader_id)
-                        self.broadcast_elector.Leader = leader_ip
-                        self.broadcast_elector.id = leader_id
-                        self.chord_node.join(ChordNodeReference(leader_ip))
-                    elif leader_id < self.node_id:
-                        # Anunciarse como líder si se recibe un líder con ID menor
-                        self.broadcast_announce(leader=True)
+                #with self.lock:
+                # Solo actualizar si el líder actual es nulo o el nuevo líder tiene un ID más alto
+                if not self.broadcast_elector.Leader or leader_id > self.broadcast_elector.id:
+                    logger.info(f"Nuevo líder detectado: {leader_ip} con ID {leader_id}")
+                    #self.handle_leadership_change(leader_ip, leader_id)
+                    self.broadcast_elector.Leader = leader_ip
+                    self.broadcast_elector.id = leader_id
+                    self.chord_node.join(ChordNodeReference(leader_ip))
+                elif leader_id < self.node_id:
+                    # Anunciarse como líder si se recibe un líder con ID menor
+                    self.broadcast_announce(leader=True)
                 time.sleep(2)        
         except Exception as e:
             logger.error(f"Error al manejar mensaje de broadcast: {e}")
@@ -222,16 +222,16 @@ class Tracker:
         """
         Maneja la transición de liderazgo.
         """
-        with self.lock:
-            was_leader = self.is_leader  # Estado anterior
-            self.broadcast_elector.Leader = new_leader_ip
-            self.broadcast_elector.id = new_leader_id
+        #with self.lock:
+        was_leader = self.is_leader  # Estado anterior
+        self.broadcast_elector.Leader = new_leader_ip
+        self.broadcast_elector.id = new_leader_id
 
-            if was_leader and not self.is_leader:
-                logger.info(f"Este nodo ya no es el líder. Nuevo líder: {new_leader_ip} con ID {new_leader_id}")
-                self.join(new_leader_ip)  # Unirse al nuevo líder
-            elif not was_leader and self.is_leader:
-                logger.info(f"Este nodo ahora es el líder.")
+        if was_leader and not self.is_leader:
+            logger.info(f"Este nodo ya no es el líder. Nuevo líder: {new_leader_ip} con ID {new_leader_id}")
+            self.join(new_leader_ip)  # Unirse al nuevo líder
+        elif not was_leader and self.is_leader:
+            logger.info(f"Este nodo ahora es el líder.")
 
     def register_node(self, node_id, node_ip, node_port):
         """
@@ -240,29 +240,29 @@ class Tracker:
         """
         logger.info(f"Registrando nodo: ID={node_id}, IP={node_ip}, Port={node_port}")
         
-        with self.lock:
-            # Agregar el nodo a la lista de trackers
-            self.trackers.add((node_id, node_ip, node_port))
+        #with self.lock:
+        # Agregar el nodo a la lista de trackers
+        self.trackers.add((node_id, node_ip, node_port))
+        
+        # Determinar si el nuevo nodo debe ser el líder
+        if node_id > self.node_id and (not self.broadcast_elector.Leader or node_id > self.broadcast_elector.id):
+            #self.handle_leadership_change(node_ip, node_id)
+            old_leader_ip = self.broadcast_elector.Leader  # Guardar el líder anterior
             
-            # Determinar si el nuevo nodo debe ser el líder
-            if node_id > self.node_id and (not self.broadcast_elector.Leader or node_id > self.broadcast_elector.id):
-                #self.handle_leadership_change(node_ip, node_id)
-                old_leader_ip = self.broadcast_elector.Leader  # Guardar el líder anterior
-                
-                # Actualizar el líder actual
-                self.broadcast_elector.Leader = node_ip
-                self.broadcast_elector.id = node_id
-                
-                # Anunciar el nuevo liderazgo
-                self.broadcast_announce(leader=True)
-                logger.info(f"Nuevo líder elegido: {node_ip} con ID {node_id}")
-                
-                # Si este nodo era el líder anterior, debe unirse al nuevo líder
-                if self.is_leader:
-                    logger.info(f"Este nodo era el líder anterior. Ahora se unirá al nuevo líder en {node_ip}.")
-                    self.chord_node.join(ChordNodeReference(node_ip))
-            else :
-                bcast_call(self.broadcast_port,msg = '{}')
+            # Actualizar el líder actual
+            self.broadcast_elector.Leader = node_ip
+            self.broadcast_elector.id = node_id
+            
+            # Anunciar el nuevo liderazgo
+            self.broadcast_announce(leader=True)
+            logger.info(f"Nuevo líder elegido: {node_ip} con ID {node_id}")
+            
+            # Si este nodo era el líder anterior, debe unirse al nuevo líder
+            if self.is_leader:
+                logger.info(f"Este nodo era el líder anterior. Ahora se unirá al nuevo líder en {node_ip}.")
+                self.chord_node.join(ChordNodeReference(node_ip))
+        else :
+            bcast_call(self.broadcast_port,msg = '{}')
         time.sleep(2)            
 
 
@@ -455,13 +455,13 @@ class Tracker:
         if not pieces_sha1 or not ip or not port:
             return {"error": "Datos incompletos para eliminar del tracker."}
 
-        with self.lock:
-            if pieces_sha1 in self.database:
-                self.database[pieces_sha1] = [
-                    peer for peer in self.database[pieces_sha1] if peer != (ip, port)
-                ]
-                if not self.database[pieces_sha1]:
-                    del self.database[pieces_sha1]
+        #with self.lock:
+        if pieces_sha1 in self.database:
+            self.database[pieces_sha1] = [
+                peer for peer in self.database[pieces_sha1] if peer != (ip, port)
+            ]
+            if not self.database[pieces_sha1]:
+                del self.database[pieces_sha1]
 
         logger.debug(f"Eliminado {ip}:{port} del tracker para {pieces_sha1}")
         return {"response": f"Eliminado {ip}:{port} para {pieces_sha1}"}
@@ -469,8 +469,8 @@ class Tracker:
 
 
     def get_database(self):
-        with self.lock:
-            return {"database": self.database}
+        #with self.lock:
+        return {"database": self.database}
         
 
 

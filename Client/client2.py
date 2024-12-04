@@ -146,6 +146,7 @@ class Client:
 
     def upload_file(self, path, tracker_urls, private=False, comments="unknown", source="unknown"):
         torrent_maker = TorrentCreator(path, 1 << 18, private, tracker_urls,comments, source)
+        #logger.log("hdjhdjf")
         #sha1_hash = torrent_maker.get_hash_pieces()
         sha1_hash = torrent_maker.get_hash_pieces()
         assert sha1_hash != ""

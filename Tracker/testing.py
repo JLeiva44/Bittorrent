@@ -64,7 +64,7 @@ def retry_on_connection_refused(func, *args, max_retries=5, delay=2, **kwargs):
         raise ConnectionRefusedError(f"No se pudo conectar tras {max_retries} intentos.")
 
 class Tracker:
-    def __init__(self, ip, port, chord_m = 8, broadcast_port = 5555 ):
+    def __init__(self, ip, port, chord_m = 160, broadcast_port = 5555 ):
         logger.info("------------------- LOGER DEL TRACKER-----------------")
         self.ip = ip
         self.port = port

@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description="Inicia el servidor del Tracker.")
     parser.add_argument('--ip', type=str, default=socket.gethostbyname(socket.gethostname()), help="Dirección IP en la que se ejecutará el Tracker.")
     parser.add_argument('--port', type=int, default=8080, help="Puerto en el que se ejecutará el Tracker.")
-    parser.add_argument('--chord_m', type=int, default=8, help="Número de bits para el anillo Chord.")
+    parser.add_argument('--chord_m', type=int, default=160, help="Número de bits para el anillo Chord.")
 
     args = parser.parse_args()
 

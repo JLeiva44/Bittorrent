@@ -118,7 +118,7 @@ class ChordNode:
         self.finger = [self.ref] * self.m  # Finger table
         self.next = 0  # Finger table index to fix next
         self.data = defaultdict(list)  # Dictionary to store key-value pairs with load balancing
-        self.lock = threading.Lock() # lock to protect shared resources
+        #self.lock = threading.Lock() # lock to protect shared resources
 
         # Start background threads for stabilization, fixing fingers, and checking predecessor
         threading.Thread(target=self.stabilize, daemon=True).start()  # Start stabilize thread
@@ -147,47 +147,52 @@ class ChordNode:
 
     # Method to find the closest preceding finger of a given id
     def closest_preceding_finger(self, id: int) -> 'ChordNodeReference':
-        for i in range(self.m - 1, -1, -1):
-            if self.finger[i] and self._inbetween(self.finger[i].id, self.id, id):
-                return self.finger[i]
-        return self.ref
+        try:
+
+            for i in range(self.m - 1, -1, -1):
+                if self.finger[i] and self._inbetween(self.finger[i].id, self.id, id):
+                    return self.finger[i]
+            return self.ref
+        except Exception as e:
+            logger.error(f"{e}")        
+        
 
     # Method to join a Chord network using 'node' as an entry point
     def join(self, node: 'ChordNodeReference'):
         """Unirse a un anillo existente."""
         logger.debug("Estoy en el join")
-        with self.lock:
-            try:
-                if node:
-                    self.pred = None
-                    self.succ = node.find_successor(self.id)
-                    self.succ.notify(self.ref)
-                else:
-                    self.succ = self.ref
-                    self.pred = None
-                #logger.debug(f"Adyacentes de {self.ip}:{self.port} :: succ: {self.succ.ip} y pred: {self.pred.ip}" )    
-            except Exception as e:
-                logger.error(f"Error en el join: {e}")        
+        #with self.lock:
+        try:
+            if node:
+                self.pred = None
+                self.succ = node.find_successor(self.id)
+                self.succ.notify(self.ref)
+            else:
+                self.succ = self.ref
+                self.pred = None
+            #logger.debug(f"Adyacentes de {self.ip}:{self.port} :: succ: {self.succ.ip} y pred: {self.pred.ip}" )    
+        except Exception as e:
+            logger.error(f"Error en el join: {e}")        
 
     def leave(self):
         """Salir del anillo Chord."""
-        with self.lock:
-            if self.succ and self.pred:
-                # Reasignar claves y notificar nodos vecinos
-                self.pred.succ = self.succ
-                self.succ.pred = self.pred
+        #with self.lock:
+        if self.succ and self.pred:
+            # Reasignar claves y notificar nodos vecinos
+            self.pred.succ = self.succ
+            self.succ.pred = self.pred
 
     def stabilize(self):
         """Verifica y ajusta sicesores/predecesores periodicamente."""
         while True:
             try:
-                with self.lock:
-                    if self.succ.id != self.id:
-                        x = self.succ.pred
-                        logger.debug(f"X es {x}")
-                        if x and self._inbetween(x.id, self.id, self.succ.id):
-                            self.succ = x
-                        self.succ.notify(self.ref)
+                #with self.lock:
+                if self.succ.id != self.id:
+                    x = self.succ.pred
+                    logger.debug(f"X es {x}")
+                    if x and self._inbetween(x.id, self.id, self.succ.id):
+                        self.succ = x
+                    self.succ.notify(self.ref)
             except Exception as e:
                 logger.error(f"Error in stabilize: {e}")
             logger.info(f"Stabilized: successor={self.succ}, predecessor={self.pred}")    
@@ -196,17 +201,17 @@ class ChordNode:
 
     # Notify method to inform the node about another node
     def notify(self, node: 'ChordNodeReference'):
-        with self.lock:
-            if node.id!= self.id and (not self.pred or self._inbetween(node.id, self.pred.id, self.id)):
-                self.pred = node
+        #with self.lock:
+        if node.id!= self.id and (not self.pred or self._inbetween(node.id, self.pred.id, self.id)):
+            self.pred = node
 
     def fix_fingers(self):
         """Actualiza periódicamente la tabla de dedos."""
         while True:
             try:
-                with self.lock:
-                    self.next = (self.next + 1) % self.m
-                    self.finger[self.next] = self.find_succ((self.id + 2 ** self.next) % 2 ** self.m)
+                #with self.lock:
+                self.next = (self.next + 1) % self.m
+                self.finger[self.next] = self.find_succ((self.id + 2 ** self.next) % 2 ** self.m)
             except Exception as e:
                 logger.error(f"Error in fix_fingers: {e}")
             time.sleep(10)
@@ -215,9 +220,9 @@ class ChordNode:
         """Comprueba si el predecesor sigue activo."""
         while True:
             try:
-                with self.lock:
-                    if self.pred:
-                        self.pred.check_predecessor()
+                #with self.lock:
+                if self.pred:
+                    self.pred.check_predecessor()
             except Exception:
                 self.pred = None
             time.sleep(10)
@@ -283,49 +288,49 @@ class ChordNode:
     
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
-        with self.lock: 
-            try:
-                logger.info(f"Almacenando clave '{key}' con valor '{value}'...")   
-                key_hash = getShaRepr(key)
-                node = self.find_succ(key_hash)
-                node.store_key(key, value)
-                logger.debug(f"Clave '{key}' almacenada en nodo {node.id}.")
+        #with self.lock: 
+        try:
+            logger.info(f"Almacenando clave '{key}' con valor '{value}'...")   
+            key_hash = getShaRepr(key)
+            node = self.find_succ(key_hash)
+            node.store_key(key, value)
+            logger.debug(f"Clave '{key}' almacenada en nodo {node.id}.")
 
-                # Replicacion de la clave en el succesor y el sucesor del sucesor
-                if node.succ.id != node.id:
-                    node.succ.store_key(key,value)
-                    logger.debug(f"Clave '{key}' replicada en nodo sucesor {node.succ.id}.")
-                if node.succ.succ.id != node.id:
-                    node.succ.succ.store_key(key,value)    
-                    logger.debug(f"Clave '{key}' replicada en nodo sucesor del sucesor {node.succ.succ.id}.")
-                
-            except Exception as e:
-                logger.error(f"Error al almacenar la clave '{key}': {e}")
+            # Replicacion de la clave en el succesor y el sucesor del sucesor
+            if node.succ.id != node.id:
+                node.succ.store_key(key,value)
+                logger.debug(f"Clave '{key}' replicada en nodo sucesor {node.succ.id}.")
+            if node.succ.succ.id != node.id:
+                node.succ.succ.store_key(key,value)    
+                logger.debug(f"Clave '{key}' replicada en nodo sucesor del sucesor {node.succ.succ.id}.")
+            
+        except Exception as e:
+            logger.error(f"Error al almacenar la clave '{key}': {e}")
 
     # Retrieve key method to get a value for a given key
     def retrieve_key(self, key: str) -> str:
-        with self.lock:
-            try:
-                logger.info(f"Recuperando clave '{key}'...")    
-                key_hash = getShaRepr(key)
-                node = self.find_succ(key_hash)
-                value = node.retrieve_key(key)
-                if value:
-                    logger.info(f"Clave '{key}' encontrada con valor '{value}' en nodo {node.id}.")
-                else:
-                    logger.warning(f"Clave '{key}' no encontrada.")
-                return value
-            except Exception as e:
-                logger.error(f"Error al recuperar la clave '{key}': {e}")
-                return None
-            
+        #with self.lock:
+        try:
+            logger.info(f"Recuperando clave '{key}'...")    
+            key_hash = getShaRepr(key)
+            node = self.find_succ(key_hash)
+            value = node.retrieve_key(key)
+            if value:
+                logger.info(f"Clave '{key}' encontrada con valor '{value}' en nodo {node.id}.")
+            else:
+                logger.warning(f"Clave '{key}' no encontrada.")
+            return value
+        except Exception as e:
+            logger.error(f"Error al recuperar la clave '{key}': {e}")
+            return None
+        
     # Start server method to handle incoming requests
     def start_server(self):
         logger.info(f"Iniciando servidor CHORD en {self.ip}:{self.port}...")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.ip, self.port))
-            s.listen(25)
+            s.listen(100)
             logger.info("Servidor iniciado y esperando conexiones...")
 
             while True:

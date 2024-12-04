@@ -5,19 +5,23 @@ import math
 import bencode
 import math
 import pickle
+from bclient_logger import logger
 
 class TorrentCreator:
     '''
         Create .torrent file from an input file
     '''
-    def __init__(self, path_file: str, piece_size: int, private: bool, trackers_urls, comments: str, source: str):
-        self.path_file = path_file
-        self.piece_size = piece_size
-        self.trackers_urls = trackers_urls
-        self.comments = comments
-        self.private = private
-        self.source = source
-    
+    def __init__(self, path_file: str, piece_size: int, private: bool, trackers_urls, source: str,comments = ""):
+        try:
+            self.path_file = path_file
+            self.piece_size = piece_size
+            self.trackers_urls = trackers_urls
+            self.comments = comments
+            self.private = private
+            self.source = source
+        except Exception:
+            raise Exception("kfjkdjfk")
+        
     @property
     def file_size(self):
         return os.path.getsize(self.path_file) 
