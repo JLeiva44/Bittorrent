@@ -29,7 +29,8 @@ class Client:
         self.context = zmq.Context()
         self.lock = threading.Lock() # Para sincronizar recursos compartidos
 
-        logger.debug(f"Strating PeerServerThread")
+        logger.debug(f"Starting PeerServerThread")
+        threading.Thread(target=self.run_server, daemon=True).start() # Start server thread
         
     
     def _send_data(self,request,ip, port, timeout = 10000) -> bytes:

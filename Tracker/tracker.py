@@ -21,9 +21,6 @@ DEFAULT_TIMEOUT = 5  # Timeout en segundos
 logger = logging.getLogger(__name__)
 
 
-def sha256_hash(s):
-    return int(hashlib.sha256(s.encode()).hexdigest(), 16)
-
 def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
@@ -92,7 +89,7 @@ class Tracker:
         self.port = port
         self.address = "tcp://" + self.ip + ":" + str(self.port)
         logger.info(f"MY adress: {self.address}")
-        self.node_id = sha256_hash(self.ip + ':' + str(self.port))
+        self.node_id = getShaRepr(self.ip + ':' + str(self.port))
         self.host_name = socket.gethostbyname(socket.gethostname())
         self.broadcast_port = broadcast_port
 
@@ -123,16 +120,20 @@ class Tracker:
         self._start_communication_threads()
         
             
+    
     def _start_communication_threads(self):
         """Inicia los hilos de com del Tracker"""
         # Crear hilos para servidor de broadcast y ejecucion Principal
-        threading.Thread(target=self.run, daemon=True).start() # Start Tracker server thread
+        threading.Thread(target=self.run, daemon=True).start() # Start Tracker server 
+        logger.warning("1")
         threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
+        logger.warning("2")
         time.sleep(2)
         self.start_periodic_broadcast()
+        logger.warning("3")
         time.sleep(2)
         threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
-
+        logger.warning("4")
         time.sleep(3)
         threading.Thread(target=self.print_current_leader, daemon=True).start()
 

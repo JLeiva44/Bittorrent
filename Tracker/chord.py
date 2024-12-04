@@ -106,7 +106,7 @@ class ChordNodeReference:
 # Class representing a Chord node
 class ChordNode:
     def __init__(self, ip: str, port: int = 8001, m: int = 160):
-        logger.info("------------------- LOGGER DEL CHORD-------------------")
+        logger.info("------------------- Inicializando EL CHORD-------------------")
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
@@ -125,6 +125,19 @@ class ChordNode:
         threading.Thread(target=self.fix_fingers, daemon=True).start()  # Start fix fingers thread
         threading.Thread(target=self.check_predecessor, daemon=True).start()  # Start check predecessor thread
         threading.Thread(target=self.start_server, daemon=True).start()  # Start server thread
+        threading.Thread(target=self.show_my_data, daemon=True).start()
+        logger.info("Finalizada la inicializacion del ChordNode....................................")
+
+    def show_my_data(self):
+        while True:
+            try:
+                logger.info("--------Mostrando mis datos-------")
+                for d in self.data:
+                    logger.info(d)
+                logger.info("-----------------------------------")
+            except Exception as e:
+                logger.error(f"Error en show_my_data: {e}")    
+            time.sleep(30)    
 
     def _inbetween(self, k: int, start: int, end: int) -> bool:
         '''Helper method to check if a value is in the range (start, end]'''
