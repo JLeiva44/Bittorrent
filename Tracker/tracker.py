@@ -9,6 +9,7 @@ import time
 import random
 import socket
 import os
+from broadcast_manager import BroadcastManager
 from chord import ChordNode, ChordNodeReference
 HOST = '127.0.0.1'
 PORT1 = '8080'
@@ -24,27 +25,6 @@ logger = logging.getLogger(__name__)
 def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
 
-def bcast_call(port, msg, attempts=3, delay=2):
-    """
-    Enviar un mensaje de broadcast con un número fijo de intentos.
-
-    :param port: Puerto de destino.
-    :param msg: Mensaje a enviar.
-    :param attempts: Número de intentos máximos de reenvío.
-    :param delay: Tiempo de espera entre intentos fallidos (en segundos).
-    """
-    for attempt in range(attempts):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-                s.sendto(msg.encode(), ("172.17.255.255", port))
-                print(f"Mensaje enviado en intento {attempt + 1}")
-                return  # Salir si el envío fue exitoso
-        except Exception as e:
-            print(f"Error al enviar el mensaje en intento {attempt + 1}: {e}")
-            if attempt < attempts - 1:
-                time.sleep(delay)  # Esperar antes de reintentar
-    print(f"No se pudo enviar el mensaje tras {attempts} intentos")
 
 # def bcast_call(port, msg):
 #     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -91,17 +71,15 @@ class Tracker:
         logger.info(f"MY adress: {self.address}")
         self.node_id = getShaRepr(self.ip + ':' + str(self.port))
         self.host_name = socket.gethostbyname(socket.gethostname())
-        self.broadcast_port = broadcast_port
-
+        
         # nodo Chord 
         self.chord_node  = ChordNode(ip)
         
+        self.broadcast_manager = BroadcastManager(ip,self.chord_node,broadcast_port)
 
 
         self.joining_list = [] # Lista de nodos que intentan unirse
 
-
-        
         # Server Sockets
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
@@ -109,15 +87,25 @@ class Tracker:
         #self.socket.listen(1000)
         self.socket.RCVTIMEO = DEFAULT_TIMEOUT * 5  # Timeout en milisegundos
         
-        # Líder actual
-        self.broadcast_elector = type('', (), {})()  # Objeto vacío
-        self.broadcast_elector.Leader = None
-        self.broadcast_elector.id = None
-        self.database = {}
-        self.trackers = set()
+        # # Líder actual
+        # self.broadcast_elector = type('', (), {})()  # Objeto vacío
+        # self.broadcast_elector.Leader = None
+        # self.broadcast_elector.id = None
+        # self.database = {}
+        # self.trackers = set()
         #self.lock = threading.Lock()  # Para sincronizar el acceso a la base de datos
         
         self._start_communication_threads()
+        time.sleep(2)
+        self.autodiscover_and_join()
+        time.sleep(2)
+        threading.Thread(target=self.broadcast_manager.periodic_broadcast, daemon=True).start()
+
+
+
+        logger.debug(f"Soy lider??: {self.broadcast_manager.is_leader}")
+
+        
         
             
     
@@ -125,46 +113,42 @@ class Tracker:
         """Inicia los hilos de com del Tracker"""
         # Crear hilos para servidor de broadcast y ejecucion Principal
         threading.Thread(target=self.run, daemon=True).start() # Start Tracker server 
-        logger.warning("1")
-        threading.Thread(target=self.listen_for_broadcast, daemon=True).start()
-        logger.warning("2")
-        time.sleep(2)
-        self.start_periodic_broadcast()
-        logger.warning("3")
-        time.sleep(2)
-        threading.Thread(target=self.autodiscover_and_join, daemon=True).start()
-        logger.warning("4")
+        # Excucho primero pa ver si hay un lider
+        threading.Thread(target=self.broadcast_manager.listen_for_broadcast, daemon=True).start()
         time.sleep(3)
-        threading.Thread(target=self.print_current_leader, daemon=True).start()
 
+        threading.Thread(target=self.broadcast_manager.print_current_leader, daemon=True).start()
 
-    def print_current_leader(self):
-        while True:
-            logger.info(f"******************LIDER ACTUAL ES : {self.broadcast_elector.Leader}******************")
-            time.sleep(30)
+        
+
+    
     
     def autodiscover_and_join(self):
         try:
-            logger.info(f"Nuevo nodo en la red: {self.ip}:{self.port}")
-            max_wait_time = 4  # Tiempo máximo de espera
+            logger.info(f"Insertando uevo nodo en la red: {self.ip}:{self.port}")
+            max_wait_time = 5  # Tiempo máximo de espera
             start_time = time.time()
 
             while True:
-                if self.broadcast_elector.Leader:
+                if self.broadcast_manager.broadcast_elector.Leader:
                     # Si el nodo actual detecta un líder
-                    leader_ip = self.broadcast_elector.Leader
-                    if self.node_id > self.broadcast_elector.id:
+                    leader_ip = self.broadcast_manager.broadcast_elector.Leader
+                    if self.broadcast_manager.id > self.broadcast_manager.broadcast_elector.id:
                         logger.info("Soy el nuevo líder de la red.")
-                        self.broadcast_announce(leader=True)
-                    else:
+                        
+                        self.broadcast_manager.broadcast_announce(leader=True)
+                    else: # Si no es lider no aviso xq a nadie le importa
                         logger.info(f"Uniéndose al líder existente en {leader_ip}")
                         self.chord_node.join(ChordNodeReference(leader_ip))
                     break
 
                 # Si el tiempo de espera expira, el nodo se convierte en líder
                 if time.time() - start_time > max_wait_time:
-                    logger.warning("No se detectó un líder. Convirtiéndome en líder.")
-                    self.broadcast_announce(leader=True)
+                    logger.warning("No se detectaron nodos en la red. Convirtiéndome en líder.")
+                    # No anuncio xq si no hay nadie en la red nadie se va a enterar
+                    #self.broadcast_announce(leader=True)
+                    self.broadcast_manager.broadcast_elector.Leader = self.ip
+                    self.broadcast_manager.id = self.node_id
                     break
 
                 time.sleep(1)
@@ -172,52 +156,7 @@ class Tracker:
             logger.error(f"Error inesperado en autodiscover_and_join: {e}", exc_info=True)
 
     
-    def listen_for_broadcast(self):
-        """
-        Escucha continuamente mensajes de broadcast y los maneja.
-        """
-        logger.info("Iniciando escucha de mensajes de broadcast...")
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            s.bind((BROADCAST_IP, self.broadcast_port))  # Escucha en todos los interfaces para el puerto especificado
-            while True:
-                try:
-                    data, addr = s.recvfrom(1024)  # Tamaño del búfer: 1024 bytes
-                    message = data.decode()
-                    sender_ip = addr[0]
-                    logger.info(f"Mensaje recibido de {sender_ip}: {message}")
-                    self.handle_broadcast_message(message, sender_ip)
-                except Exception as e:
-                    logger.error(f"Error al escuchar mensajes de broadcast: {e}", exc_info=True)
-
-    def handle_broadcast_message(self, msg, sender_ip):
-        #logger.info(f"Mensaje de broadcast recibido: {msg} de {sender_ip}")
-        try:
-            if msg.startswith("NODE"):
-                _, node_id, node_ip, node_port = msg.split(",")
-                node_id = int(node_id)
-                self.register_node(node_id, node_ip, node_port)
-
-            elif msg.startswith("NEWLEADER"):
-                _, leader_id, leader_ip, leader_port = msg.split(",")
-                leader_id = int(leader_id)
-                
-                #with self.lock:
-                # Solo actualizar si el líder actual es nulo o el nuevo líder tiene un ID más alto
-                if not self.broadcast_elector.Leader or leader_id > self.broadcast_elector.id:
-                    logger.info(f"Nuevo líder detectado: {leader_ip} con ID {leader_id}")
-                    #self.handle_leadership_change(leader_ip, leader_id)
-                    self.broadcast_elector.Leader = leader_ip
-                    self.broadcast_elector.id = leader_id
-                    self.chord_node.join(ChordNodeReference(leader_ip))
-                elif leader_id < self.node_id:
-                    # Anunciarse como líder si se recibe un líder con ID menor
-                    self.broadcast_announce(leader=True)
-                time.sleep(2)        
-        except Exception as e:
-            logger.error(f"Error al manejar mensaje de broadcast: {e}")
-
+    
     
     def handle_leadership_change(self, new_leader_ip, new_leader_id):
         """
@@ -234,100 +173,7 @@ class Tracker:
         elif not was_leader and self.is_leader:
             logger.info(f"Este nodo ahora es el líder.")
 
-    def register_node(self, node_id, node_ip, node_port):
-        """
-        Registra un nodo en la red y actualiza el líder si es necesario.
-        Si el nodo actual era el líder y se detecta un nuevo líder, el nodo actual se une al nuevo líder.
-        """
-        logger.info(f"Registrando nodo: ID={node_id}, IP={node_ip}, Port={node_port}")
-        
-        #with self.lock:
-        # Agregar el nodo a la lista de trackers
-        self.trackers.add((node_id, node_ip, node_port))
-        
-        # Determinar si el nuevo nodo debe ser el líder
-        if node_id > self.node_id and (not self.broadcast_elector.Leader or node_id > self.broadcast_elector.id):
-            #self.handle_leadership_change(node_ip, node_id)
-            old_leader_ip = self.broadcast_elector.Leader  # Guardar el líder anterior
-            
-            # Actualizar el líder actual
-            self.broadcast_elector.Leader = node_ip
-            self.broadcast_elector.id = node_id
-            
-            # Anunciar el nuevo liderazgo
-            self.broadcast_announce(leader=True)
-            logger.info(f"Nuevo líder elegido: {node_ip} con ID {node_id}")
-            
-            # Si este nodo era el líder anterior, debe unirse al nuevo líder
-            if self.is_leader:
-                logger.info(f"Este nodo era el líder anterior. Ahora se unirá al nuevo líder en {node_ip}.")
-                self.chord_node.join(ChordNodeReference(node_ip))
-        else :
-            bcast_call(self.broadcast_port,msg = '{}')
-        time.sleep(2)            
-
-
-    @property
-    def is_leader(self):
-        """
-        Determina si este nodo es el líder actual.
-        """
-        return self.broadcast_elector.Leader == self.ip and self.broadcast_elector.id == self.node_id
-
-
-    def start_periodic_broadcast(self):
-        """
-        Inicia un hilo para enviar anuncios periódicos.
-        """
-        def periodic_broadcast():
-            while True:
-                try:
-                    if self.is_leader:
-                        self.broadcast_announce(leader=True)
-                    else:
-                        self.broadcast_announce()
-                    time.sleep(10)  # Intervalo entre anuncios (10 segundos)
-                except Exception as e:
-                    logger.error(f"Error en broadcast periódico: {e}")
-
-        # Crear un hilo para el broadcast periódico
-        threading.Thread(target=periodic_broadcast, daemon=True).start()
-
-                
-    def broadcast_announce(self, leader=False):
-        """
-        Anuncia el estado del nodo actual mediante broadcast.
-        """
-        try:
-            if leader:
-                msg = f"NEWLEADER,{self.node_id},{self.ip},{self.port}"
-                logger.info(f"Anunciando nuevo líder: {self.node_id}")
-                self.broadcast_elector.Leader = self.ip
-                self.broadcast_elector.id = self.node_id
-            else:
-                msg = f"NODE,{self.node_id},{self.ip},{self.port}"
-                logger.info(f"Anunciando nodo: {msg}")
-
-            # Llamada al método de broadcast
-            bcast_call(self.broadcast_port, msg)
-        except Exception as e:
-            logger.error(f"Error al enviar mensaje de broadcast: {e}")
-
-    def join(self, node_ip, node_port=8001):
-        """
-        Realiza la unión a un nodo en el anillo Chord.
-        """
-        logger.debug(f"Haciendo JOIN desde {self.ip} a {node_ip}")
-        try:
-            logger.info(f"Intentando unirse al nodo en {node_ip}:{node_port}")
-            retry_on_connection_refused(
-                self.chord_node.join, ChordNodeReference(node_ip)
-            )
-            logger.info(f"Union exitoda al nodo en {node_ip}:{node_port}")
-        except ConnectionRefusedError as e:
-            logger.warning(f"Conexión rechazada por el nodo {node_ip}:{node_port}: {e}")
-        except Exception as e:
-            logger.error(f"Error crítico al unirse al nodo {node_ip}:{node_port}: {e}", exc_info=True)     
+    
                 
     def run(self):
         logger.debug(f"Tracker corriendo en {self.address}")

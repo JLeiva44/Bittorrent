@@ -30,6 +30,7 @@ class Client:
         self.lock = threading.Lock() # Para sincronizar recursos compartidos
 
         logger.debug(f"Starting PeerServerThread")
+
         threading.Thread(target=self.run_server, daemon=True).start() # Start server thread
         
     
