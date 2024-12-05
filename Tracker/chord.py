@@ -3,6 +3,8 @@ import threading
 import sys
 import time
 import hashlib
+import json 
+import os
 from tracker_logger import logger
 from collections import defaultdict
 # Operation codes
@@ -117,6 +119,7 @@ class ChordNode:
         self.next = 0  # Finger table index to fix next
         self.data = defaultdict(list)  # Dictionary to store key-value pairs with load balancing
         #self.lock = threading.Lock() # lock to protect shared resources
+        self.load_data_from_disk()
 
         # Start background threads for stabilization, fixing fingers, and checking predecessor
         threading.Thread(target=self.stabilize, daemon=True).start()  # Start stabilize thread
@@ -124,6 +127,8 @@ class ChordNode:
         threading.Thread(target=self.check_predecessor, daemon=True).start()  # Start check predecessor thread
         threading.Thread(target=self.start_server, daemon=True).start()  # Start server thread
         threading.Thread(target=self.show_my_data, daemon=True).start()
+        threading.Thread(target=self.auto_save_data, daemon=True).start() # Guardar datos periodicamente
+
         logger.debug(f"Inicializando Nodo Chord con ID={self.id} en {self.ip}:{self.port}")
 
     def show_my_data(self):
@@ -136,6 +141,12 @@ class ChordNode:
             except Exception as e:
                 logger.error(f"Error en show_my_data: {e}")    
             time.sleep(30)    
+
+    def auto_save_data(self):
+        """Guardar datos periódicamente en disco."""
+        while True:
+            self.save_data_to_disk()
+            time.sleep(60)  # Guardar cada 60 segundos
 
     def _inbetween(self, k: int, start: int, end: int) -> bool:
         '''Helper method to check if a value is in the range (start, end]'''
@@ -156,6 +167,29 @@ class ChordNode:
             node = node.closest_preceding_finger(id)
         return node
 
+    def save_data_to_disk(self):
+        """Guardar datos del nodo en disco para persistencia."""
+        try:
+            file_name = f"chord_node_{self.id}.json"
+            with open(file_name, 'w') as f:
+                json.dump(self.data, f)
+            logger.info(f"Datos guardados en disco: {file_name}")
+        except Exception as e:
+            logger.error(f"Error al guardar datos en disco: {e}")
+
+    def load_data_from_disk(self):
+        """Cargar datos del nodo desde disco."""
+        try:
+            file_name = f"chord_node_{self.id}.json"
+            if os.path.exists(file_name):
+                with open(file_name, 'r') as f:
+                    self.data = defaultdict(list, json.load(f))
+                logger.info(f"Datos cargados desde disco: {file_name}")
+            else:
+                logger.info(f"No se encontró archivo local para nodo {self.id}. Iniciando vacío.")
+        except Exception as e:
+            logger.error(f"Error al cargar datos desde disco: {e}")
+
     # Method to find the closest preceding finger of a given id
     def closest_preceding_finger(self, id: int) -> 'ChordNodeReference':
         try:
@@ -170,7 +204,7 @@ class ChordNode:
 
     # Method to join a Chord network using 'node' as an entry point
     def join(self, node: 'ChordNodeReference'):
-        """Unirse a un anillo existente."""
+        """Join a Chord Network using 'node' as an entry point."""
         logger.debug("Estoy en el join")
         #with self.lock:
         try:
@@ -185,13 +219,6 @@ class ChordNode:
         except Exception as e:
             logger.error(f"Error en el join: {e}")        
 
-    def leave(self):
-        """Salir del anillo Chord."""
-        #with self.lock:
-        if self.succ and self.pred:
-            # Reasignar claves y notificar nodos vecinos
-            self.pred.succ = self.succ
-            self.succ.pred = self.pred
 
     def stabilize(self):
         """Verifica y ajusta sicesores/predecesores periodicamente."""
@@ -227,6 +254,36 @@ class ChordNode:
                 logger.error(f"Error in fix_fingers: {e}")
             time.sleep(10)
 
+    def check_successors(self):
+        """Validar disponibilidad de sucesores y redistribuir datos si caen."""
+        while True:
+            try:
+                if not self.is_node_alive(self.succ):
+                    logger.warning(f"Sucesor {self.succ.id} no responde. Redistribuyendo datos...")
+                    # Redistribuir claves del sucesor caído
+                    if self.succ and self.succ.data:
+                        for key, values in self.succ.data.items():
+                            for value in values:
+                                self.store_key(key, value)
+                    # Asignar nuevo sucesor
+                    self.succ = self.succ.succ if self.succ.succ else self.ref
+                    logger.info(f"Nuevo sucesor asignado: {self.succ}.")
+            except Exception as e:
+                logger.error(f"Error en check_successors: {e}")
+            time.sleep(15)
+
+    
+    
+
+    def is_node_alive(self, node: 'ChordNodeReference') -> bool:
+        """Verificar si un nodo está activo enviando una solicitud."""
+        try:
+            node.check_predecessor()  # Cualquier operación simple para comprobar vida
+            return True
+        except Exception:
+            return False
+
+
     def check_predecessor(self):
         """Comprueba si el predecesor sigue activo."""
         while True:
@@ -238,65 +295,6 @@ class ChordNode:
                 self.pred = None
             time.sleep(10)
 
-    # def store_key(self, key: str, value):
-    #     with self.lock:
-    #         key_hash = getShaRepr(key)
-    #         node = self.find_succ(key_hash)
-
-    #         try:
-    #             # Almacena en el nodo principal
-    #             node.store_key(key, value)
-    #             logger.info(f"Clave '{key}' almacenada en el nodo {node.id}.")
-
-    #             # Replicación en el sucesor
-    #             if node.succ and node.succ.id != node.id :#and node.succ.is_alive():
-    #                 node.succ.store_key(key, value)
-    #                 logger.info(f"Clave '{key}' replicada en el nodo sucesor {node.succ.id}.")
-
-    #             # Replicación en el sucesor del sucesor
-    #             if node.succ and node.succ.succ and node.succ.succ.id != node.id :#and node.succ.succ.is_alive():
-    #                 node.succ.succ.store_key(key, value)
-    #                 logger.info(f"Clave '{key}' replicada en el nodo sucesor del sucesor {node.succ.succ.id}.")
-
-    #         except Exception as e:
-    #             logger.error(f"Error al almacenar la clave '{key}' en la red: {e}")
-
-    # def retrieve_key(self, key: str) -> str:
-    #     with self.lock:
-    #         key_hash = getShaRepr(key)
-    #         node = self.find_succ(key_hash)
-
-    #         try:
-    #             # Intenta recuperar la clave del nodo principal
-    #             value = node.retrieve_key(key)
-    #             if value is not None:
-    #                 logger.info(f"Clave '{key}' encontrada en el nodo {node.id}.")
-    #                 return value
-
-    #             # Si no está en el nodo principal, busca en el sucesor
-    #             if node.succ: # if node.succ and node.succ.is_alive()
-    #                 value = node.succ.retrieve_key(key)
-    #                 if value is not None:
-    #                     logger.info(f"Clave '{key}' encontrada en el nodo sucesor {node.succ.id}.")
-    #                     return value
-
-    #             # Si no está en el sucesor, busca en el sucesor del sucesor
-    #             if node.succ and node.succ.succ : # if node.succ and node.succ.succ and node.succ.succ.is_alive()
-    #                 value = node.succ.succ.retrieve_key(key)
-    #                 if value is not None:
-    #                     logger.info(f"Clave '{key}' encontrada en el nodo sucesor del sucesor {node.succ.succ.id}.")
-    #                     return value
-
-    #             # Si no se encuentra en ninguno, retorna None
-    #             logger.warning(f"Clave '{key}' no encontrada en la red.")
-    #             return None
-
-    #         except Exception as e:
-    #             logger.error(f"Error al recuperar la clave '{key}' de la red: {e}")
-    #             return None
-
-    
-    
     # Store key method to store a key-value pair and replicate to the successor
     def store_key(self, key: str, value):
         #with self.lock: 
@@ -309,12 +307,17 @@ class ChordNode:
             logger.debug(f"Clave '{key}' almacenada en nodo {node.id}.")
 
             # Replicacion de la clave en el succesor y el sucesor del sucesor
-            if node.succ.id != node.id:
-                node.succ.store_key(key,value)
-                logger.debug(f"Clave '{key}' replicada en nodo sucesor {node.succ.id}.")
-            if node.succ.succ.id != node.id:
-                node.succ.succ.store_key(key,value)    
-                logger.debug(f"Clave '{key}' replicada en nodo sucesor del sucesor {node.succ.succ.id}.")
+            succesors = [node.succ, node.succ.succ]
+            for succ in succesors:
+                if succ and succ.id != node.id: # Validar que el succesor no sea el mismo
+                    succ.store_key(key, value)
+                    logger.debug(f"Clave {key} replicada en nodo sucesor {succ.id}")
+            # if node.succ.id != node.id:
+            #     node.succ.store_key(key,value)
+            #     logger.debug(f"Clave '{key}' replicada en nodo sucesor {node.succ.id}.")
+            # if node.succ.succ.id != node.id:
+            #     node.succ.succ.store_key(key,value)    
+            #     logger.debug(f"Clave '{key}' replicada en nodo sucesor del sucesor {node.succ.succ.id}.")
             
         except Exception as e:
             logger.error(f"Error al almacenar la clave '{key}': {e}")
@@ -352,61 +355,7 @@ class ChordNode:
                     threading.Thread(target=self.handle_connection, args=(conn, addr), daemon=True).start()
                 except Exception as e:
                     logger.error(f"Error acepting new connextion: {e}")    
-
-            
-            
-            # while True:
-            #     conn, addr = s.accept()
-            #     print(f'new connection from {addr}')
-
-            #     data = conn.recv(1024).decode().split(',')
-
-            #     data_resp = None
-            #     option = int(data[0])
-
-            #     if option == FIND_SUCCESSOR:
-            #         id = int(data[1])
-            #         data_resp = self.find_succ(id)
-            #     elif option == FIND_PREDECESSOR:
-            #         id = int(data[1])
-            #         data_resp = self.find_pred(id)
-            #     elif option == GET_SUCCESSOR:
-            #         data_resp = self.succ if self.succ else self.ref
-            #     elif option == GET_PREDECESSOR:
-            #         data_resp = self.pred if self.pred else self.ref
-            #     elif option == NOTIFY:
-            #         id = int(data[1])
-            #         ip = data[2]
-            #         self.notify(ChordNodeReference(ip, self.port))
-            #     elif option == CHECK_PREDECESSOR:
-            #         pass
-            #     elif option == CLOSEST_PRECEDING_FINGER:
-            #         id = int(data[1])
-            #         data_resp = self.closest_preceding_finger(id)
-            #     elif option == STORE_KEY:
-            #         key, value = data[1], data[2]
-            #         try:
-            #             self.data[key]
-            #         except KeyError:
-            #             self.data[key] = [value]
-            #         else:
-            #             self.data[key].append(value)
-
-            #         logger.debug(f"Se guardo {value}")
-            #     elif option == RETRIEVE_KEY:
-            #         key = data[1]
-            #         data_resp = self.data.get(key, '') # Aumamos que aqui hay una lista
-                    
-            #     if data_resp:
-            #         if option == RETRIEVE_KEY:
-            #             logger.debug(f"Data response es {data_resp}")
-            #             response = f"{data_resp}".encode()    
-
-            #         else:
-            #             response = f'{data_resp.id},{data_resp.ip}'.encode()
-            #         conn.sendall(response)
-            #     conn.close()
-
+           
     def handle_connection(self, conn, addr):
             try:
                 data = conn.recv(1024).decode().split(',')
