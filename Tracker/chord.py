@@ -106,11 +106,9 @@ class ChordNodeReference:
 # Class representing a Chord node
 class ChordNode:
     def __init__(self, ip: str, port: int = 8001, m: int = 160):
-        logger.info("------------------- Inicializando EL CHORD-------------------")
         self.id = getShaRepr(ip)
         self.ip = ip
         self.port = port
-        logger.debug(f"Inicializando nodo con ID={self.id} en {self.ip}:{self.port}")
         self.ref = ChordNodeReference(self.ip, self.port)
         self.succ = self.ref  # Initial successor is itself
         self.pred = None  # Initially no predecessor
@@ -126,14 +124,14 @@ class ChordNode:
         threading.Thread(target=self.check_predecessor, daemon=True).start()  # Start check predecessor thread
         threading.Thread(target=self.start_server, daemon=True).start()  # Start server thread
         threading.Thread(target=self.show_my_data, daemon=True).start()
-        logger.info("Finalizada la inicializacion del ChordNode....................................")
+        logger.debug(f"Inicializando Nodo Chord con ID={self.id} en {self.ip}:{self.port}")
 
     def show_my_data(self):
         while True:
             try:
                 logger.info("--------Mostrando mis datos-------")
-                for d in self.data:
-                    logger.info(d)
+                for key in self.data:
+                    logger.info(f"{key}:{self.data[key]}")
                 logger.info("-----------------------------------")
             except Exception as e:
                 logger.error(f"Error en show_my_data: {e}")    
@@ -303,9 +301,10 @@ class ChordNode:
     def store_key(self, key: str, value):
         #with self.lock: 
         try:
-            logger.info(f"Almacenando clave '{key}' con valor '{value}'...")   
+            logger.debug(f"Almacenando clave '{key}' con valor '{value}'...")   
             key_hash = getShaRepr(key)
             node = self.find_succ(key_hash)
+            logger.debug(f"El sucesor de la llave es : {node}, la vou a mandar paya")
             node.store_key(key, value)
             logger.debug(f"Clave '{key}' almacenada en nodo {node.id}.")
 
@@ -324,14 +323,14 @@ class ChordNode:
     def retrieve_key(self, key: str) -> str:
         #with self.lock:
         try:
-            logger.info(f"Recuperando clave '{key}'...")    
+            logger.info(f"Recuperando clave *********************************************************8'{key}'...")    
             key_hash = getShaRepr(key)
             node = self.find_succ(key_hash)
             value = node.retrieve_key(key)
             if value:
-                logger.info(f"Clave '{key}' encontrada con valor '{value}' en nodo {node.id}.")
+                logger.info(f"Clave {key} encontrada con valor {value} en nodo {node.id}.")
             else:
-                logger.warning(f"Clave '{key}' no encontrada.")
+                logger.warning(f"Clave {key} no encontrada.")
             return value
         except Exception as e:
             logger.error(f"Error al recuperar la clave '{key}': {e}")
@@ -434,7 +433,9 @@ class ChordNode:
                     logger.info(f"Nodo notificado: ID={id}, IP={ip}.")
                 elif option == STORE_KEY:
                     key, value = data[1], data[2]
-                    self.data.setdefault(key, []).append(value)
+                    self.data.setdefault(key, [])
+                    if not value in self.data[key]:
+                        self.data[key].append(value) 
                     logger.info(f"Clave '{key}' con valor '{value}' almacenada localmente.")
                 elif option == RETRIEVE_KEY:
                     key = data[1]
