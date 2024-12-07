@@ -10,7 +10,7 @@ import random
 import socket
 import os
 from broadcast_manager import BroadcastManager
-from chord import ChordNode, ChordNodeReference
+from c2 import ChordNode, ChordNodeReference
 HOST = '127.0.0.1'
 PORT1 = '8080'
 PORT2 = '8001'
@@ -20,7 +20,28 @@ BROADCAST_IP = '172.17.255.255'
 DEFAULT_TIMEOUT = 5  # Timeout en segundos
 
 logger = logging.getLogger(__name__)
+def retry_on_connection_refused(func, *args, max_retries=5, delay=3, **kwargs):
+    """
+    Tries to execute the function 'func' with the given arguments.
+    If a connection refused exception occurs, it retries the execution.
 
+    :param func: The function to execute.
+    :param args: Positional arguments for the function.
+    :param max_retries: Maximum number of retries.
+    :param delay: Delay time between retries (in seconds).
+    :param kwargs: Keyword arguments for the function.
+    :return: The result of the function if successful, None if it fails after retries.
+    """
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except ConnectionRefusedError as e:
+            print(
+                f"Connection refused in function '{func.__name__}'. Attempt {attempt + 1} of {max_retries}."
+            )
+            time.sleep(delay)  # Wait before retrying
+    print("Maximum number of retries reached. Function failed.")
+    return None
 
 def getShaRepr(data: str):
     return int(hashlib.sha1(data.encode()).hexdigest(), 16)
@@ -139,7 +160,7 @@ class Tracker:
                         self.broadcast_manager.broadcast_announce(leader=True)
                     else: # Si no es lider no aviso xq a nadie le importa
                         logger.info(f"Uniéndose al líder existente en {leader_ip}")
-                        self.chord_node.join(ChordNodeReference(leader_ip))
+                        self.chord_node.join(ChordNodeReference(leader_ip, leader_ip))
                     break
 
                 # Si el tiempo de espera expira, el nodo se convierte en líder
@@ -259,16 +280,15 @@ class Tracker:
         # Buscar el nodo correspondiente en el anillo Chord para la pieza
         #node_ref = self.chord_node.ref.find_succ(sha256_hash(pieces_sha1))
         
-        # key = getShaRepr(pieces_sha1)
         # node_ref = self.chord_node.find_succ(key) 
 
 
-        peers = self.chord_node.retrieve_key(pieces_sha1)
+        key = getShaRepr(pieces_sha1)
+        peers = self.chord_node.find_succ(key).get_value(key) # Esto es una lista de listas [[perr_id, perr_ip, port]]
         logger.debug(f"La lista de peers que llega al tracker es {peers}")
         final_peers = []
-        for peer in peers:
-            peer = peer.split(":")
-            final_peers.append((peer[0],peer[1]))
+        for peer_id, peer_ip, peer_port in peers:
+            final_peers.append((peer_ip,peer_port))
 
 
         logger.debug(f"Getting Peers for piece {pieces_sha1}")
@@ -294,7 +314,7 @@ class Tracker:
         
         # Almacenar los datos
         peer = f'{peer_ip}:{peer_port}'
-        self.chord_node.store_key(pieces_sha1,peer)
+        self.chord_node.store_key(pieces_sha1,[peer_ip,peer_ip, peer_port])
         logger.debug(f"Added {peer_ip}:{peer_port} to Node: {peer_ip}:{peer_port} for piece {pieces_sha1}")    
         
 

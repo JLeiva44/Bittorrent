@@ -2,7 +2,7 @@ import socket
 import json
 from tracker_logger import logger
 import time
-from chord import ChordNode, ChordNodeReference
+from c2 import ChordNode, ChordNodeReference
 import hashlib
 BROADCAST_IP = '172.17.255.255'
 
@@ -67,7 +67,7 @@ class BroadcastManager:
                 # Si el anterior lider era yocy el nuevo no soy yo mismo: 
                 if self.is_leader and self.broadcast_elector.Leader != leader_ip:
                     # Entonces tengo quye hacer join con el actual
-                    self.chord_node.join(ChordNodeReference(leader_ip))
+                    self.chord_node.join(ChordNodeReference(1,leader_ip))
 
                 self.broadcast_elector.Leader = leader_ip
                 self.broadcast_elector.id = int(leader_id)
@@ -185,7 +185,7 @@ def autodiscover_and_join(self):
                         self.broadcast_announce(leader=True)
                     else:
                         logger.info(f"Uniéndose al líder existente en {leader_ip}")
-                        self.chord_node.join(ChordNodeReference(leader_ip))
+                        self.chord_node.join(ChordNodeReference(1,leader_ip))
                     break
 
                 # Si el tiempo de espera expira, el nodo se convierte en líder
