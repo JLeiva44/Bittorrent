@@ -211,6 +211,26 @@ class ChordNode:
             target=self.stabilize, daemon=True
         ).start()  # Start stabilize thread
 
+        threading.Thread(
+            target=self.show_my_data, daemon=True
+        ).start()  # Start stabilize thread
+
+
+    def show_my_data(self):
+        while True:
+            try:
+                print("--------Mostrando mis datos-------")
+                for key in self.values:
+                    print(f"{key}:{self.values[key]}")
+                print("-----------------------------------")
+                print("--------Mostrando replicados------")
+                for key in self.replicates:
+                    print(f"{key}:{self.replicates[key]}")
+                print("-----------------------------------")
+            except Exception as e:
+                print(f"Error en show_my_data: {e}")    
+            time.sleep(6)    
+    
     def _inbetween(self, k: int, start: int, end: int) -> bool:
         """Check if k is in the interval (start, end]."""
         if start < end:

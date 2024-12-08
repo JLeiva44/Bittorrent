@@ -112,10 +112,10 @@ def main():
     parser.add_argument("--port", type=int,default=8080, help="Puerto del cliente")
     parser.add_argument("--peer-id", help="ID único del peer (opcional)")
     parser.add_argument("command", choices=["upload", "download", "connect-tracker", "get-peers", "test-request"], help="Comando a ejecutar")
-    parser.add_argument("--path", type=str, default="client_files/archivo2.txt", help="Ruta del archivo a cargar o .torrent a descargar")
-    parser.add_argument("--save-at",type=str, default="downloaded_files/c2", help="Directorio donde guardar los archivos descargados")
+    parser.add_argument("--path", type=str, default="client_files/test_file.txt", help="Ruta del archivo a cargar o .torrent a descargar")
+    parser.add_argument("--save-at",type=str, default="downloaded_files", help="Directorio donde guardar los archivos descargados")
     parser.add_argument("--tracker-urls", nargs="+", help="URLs de trackers (formato IP:PORT)")
-    parser.add_argument("--torrent-info", default='torrent_files/archivo2.torrent', help="Archivo .torrent para obtener información")
+    parser.add_argument("--torrent-info", default='torrent_files/test_file.torrent', help="Archivo .torrent para obtener información")
     parser.add_argument("--remove", action="store_true", help="Eliminar peer del tracker")
     
     args = parser.parse_args()

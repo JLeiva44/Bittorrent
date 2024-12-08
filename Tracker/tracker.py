@@ -121,6 +121,7 @@ class Tracker:
         self.autodiscover_and_join()
         time.sleep(2)
         threading.Thread(target=self.broadcast_manager.periodic_broadcast, daemon=True).start()
+        threading.Thread(target=self.leader_pool, daemon=True).start()
 
 
 
@@ -139,11 +140,81 @@ class Tracker:
         time.sleep(3)
 
         threading.Thread(target=self.broadcast_manager.print_current_leader, daemon=True).start()
+        
 
         
 
+    def leader_pool(self):
+        """
+    Monitorea la disponibilidad del líder actual. Si no responde,
+    se inicia un proceso de consenso para elegir al nodo con el ID más alto como líder.
+    """
+        time.sleep(5)
+        while True:
+            try:
+
+                # Realizar ping al líder
+                current_leader = self.broadcast_manager.broadcast_elector.Leader
+                if current_leader and current_leader != self.ip:
+                    leader_alive = self.ping_leader(f"{current_leader}:{self.port}")
+                    if not leader_alive:
+                        logger.warning(f"El líder {current_leader} no responde. Iniciando consenso de liderazgo.")
+                        self.broadcast_manager.broadcast_elector.Leader = self.ip
+                        self.broadcast_manager.id = self.node_id
+                        self.broadcast_manager.broadcast_announce(leader=True)
+                        
+                    else:
+                        print("El lider esta vivo")    
+                    # Esperar antes del siguiente chequeo
+                    time.sleep(DEFAULT_TIMEOUT)
+
+            except Exception as e:
+                logger.error(f"Error en leader_pool: {e}", exc_info=True)
+                time.sleep(DEFAULT_TIMEOUT)  # Evitar consumo excesivo de recursos
     
-    
+    def ping_leader(self, leader_address):
+        """
+        Realiza un ping al líder mediante un mensaje ZeroMQ para verificar su disponibilidad.
+
+        :param leader_address: Dirección del líder (IP:PUERTO).
+        :return: True si el líder responde, False en caso contrario.
+        """
+        try:
+            # Crear un socket ZeroMQ para la comunicación temporal
+            context = zmq.Context()
+            socket = context.socket(zmq.REQ)
+            socket.setsockopt(zmq.LINGER, 0)  # Configurar el socket para no esperar al cerrar
+            socket.setsockopt(zmq.RCVTIMEO, 3000)  # Tiempo de espera de recepción (ms)
+            socket.setsockopt(zmq.SNDTIMEO, 3000)  # Tiempo de espera de envío (ms)
+            socket.connect(f"tcp://{leader_address}")
+
+            # Enviar mensaje de ping
+            message = {"action": "ping"}
+            socket.send_json(message)
+            logger.debug(f"Enviado mensaje de ping al líder: {leader_address}")
+
+            # Recibir respuesta
+            response = socket.recv_json()
+            socket.close()
+            context.term()
+
+            # Verificar si la respuesta es válida
+            if response.get("status") == "ok" and response.get("action") == "ping":
+                logger.debug(f"Líder {leader_address} respondió correctamente.")
+                return True
+            else:
+                logger.warning(f"Líder {leader_address} respondió con datos inesperados: {response}")
+                return False
+
+        except zmq.ZMQError as e:
+            logger.error(f"No se pudo contactar con el líder {leader_address}: {e}")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error en ping_leader: {e}")
+            return False
+
+        
     def autodiscover_and_join(self):
         try:
             logger.info(f"Insertando uevo nodo en la red: {self.ip}:{self.port}")
@@ -179,20 +250,7 @@ class Tracker:
     
     
     
-    def handle_leadership_change(self, new_leader_ip, new_leader_id):
-        """
-        Maneja la transición de liderazgo.
-        """
-        #with self.lock:
-        was_leader = self.is_leader  # Estado anterior
-        self.broadcast_elector.Leader = new_leader_ip
-        self.broadcast_elector.id = new_leader_id
-
-        if was_leader and not self.is_leader:
-            logger.info(f"Este nodo ya no es el líder. Nuevo líder: {new_leader_ip} con ID {new_leader_id}")
-            self.join(new_leader_ip)  # Unirse al nuevo líder
-        elif not was_leader and self.is_leader:
-            logger.info(f"Este nodo ahora es el líder.")
+    
 
     
                 
@@ -261,6 +319,8 @@ class Tracker:
                 return self.get_database()
             elif action == "get_node_id":
                 return {"node_id": self.node_id}
+            elif action == "ping":
+                return {"status": "ok", "action": "ping"}
             else:
                 return {"error": "Acción desconocida."}
 
@@ -317,7 +377,6 @@ class Tracker:
         self.chord_node.store_key(pieces_sha1,[peer_ip,peer_ip, peer_port])
         logger.debug(f"Added {peer_ip}:{peer_port} to Node: {peer_ip}:{peer_port} for piece {pieces_sha1}")    
         
-
     def remove_from_database(self, pieces_sha1, ip, port):
         if not pieces_sha1 or not ip or not port:
             return {"error": "Datos incompletos para eliminar del tracker."}
@@ -332,8 +391,6 @@ class Tracker:
 
         logger.debug(f"Eliminado {ip}:{port} del tracker para {pieces_sha1}")
         return {"response": f"Eliminado {ip}:{port} para {pieces_sha1}"}
-
-
 
     def get_database(self):
         #with self.lock:

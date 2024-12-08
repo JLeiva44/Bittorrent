@@ -75,52 +75,11 @@ class BroadcastManager:
 
 
             
-                # #with self.lock:
-                # # Solo actualizar si el líder actual es nulo o el nuevo líder tiene un ID más alto
-                # if not self.broadcast_elector.Leader or leader_id > self.broadcast_elector.id:
-                #     logger.info(f"Nuevo líder detectado: {leader_ip} con ID {leader_id}")
-                #     #self.handle_leadership_change(leader_ip, leader_id)
-                #     self.broadcast_elector.Leader = leader_ip
-                #     self.broadcast_elector.id = leader_id
-                #     self.chord_node.join(ChordNodeReference(leader_ip))
-                # elif leader_id < self.node_id:
-                #     # Anunciarse como líder si se recibe un líder con ID menor
-                #     self.broadcast_announce(leader=True)
-                # time.sleep(2)        
+               
         except Exception as e:
             logger.error(f"Error al manejar mensaje de broadcast: {e}")
 
-    # def register_node(self, node_ip, node_port):
-    #     """
-    #     Registra un nodo en la red y actualiza el líder si es necesario.
-    #     Si el nodo actual era el líder y se detecta un nuevo líder, el nodo actual se une al nuevo líder.
-    #     """
-    #     logger.info(f"Registrando nodo: IP={node_ip}, Port={node_port}")
-        
-    #     #with self.lock:
-    #     # Agregar el nodo a la lista de trackers
-    #     self.trackers.add((node_ip, node_port))
-        
-    #     # Determinar si el nuevo nodo debe ser el líder
-    #     if node_id > self.node_id and (not self.broadcast_elector.Leader or node_id > self.broadcast_elector.id):
-    #         #self.handle_leadership_change(node_ip, node_id)
-    #         old_leader_ip = self.broadcast_elector.Leader  # Guardar el líder anterior
-            
-    #         # Actualizar el líder actual
-    #         self.broadcast_elector.Leader = node_ip
-    #         self.broadcast_elector.id = node_id
-            
-    #         # Anunciar el nuevo liderazgo
-    #         self.broadcast_announce(leader=True)
-    #         logger.info(f"Nuevo líder elegido: {node_ip} con ID {node_id}")
-            
-    #         # Si este nodo era el líder anterior, debe unirse al nuevo líder
-    #         if self.is_leader:
-    #             logger.info(f"Este nodo era el líder anterior. Ahora se unirá al nuevo líder en {node_ip}.")
-    #             self.chord_node.join(ChordNodeReference(node_ip))
-    #     else :
-    #         bcast_call(self.broadcast_port,msg = '{}')
-    #     time.sleep(2)            
+    
 
 
     @property
@@ -134,7 +93,7 @@ class BroadcastManager:
     def print_current_leader(self):
         while True:
             logger.info(f"******************LIDER ACTUAL ES : {self.broadcast_elector.Leader}******************")
-            time.sleep(20)
+            time.sleep(8)
 
     def periodic_broadcast(self):
         while True:
@@ -144,7 +103,7 @@ class BroadcastManager:
                     logger.debug("anunciando que todavia soy lider")
                     #else:
                         #self.broadcast_announce() Creo que x ahora no me interersa saber quien esta en la red
-                    time.sleep(2)  # Intervalo entre anuncios (10 segundos)
+                    time.sleep(5)  # Intervalo entre anuncios (10 segundos)
                 except Exception as e:
                     logger.error(f"Error en broadcast periódico: {e}")
 
